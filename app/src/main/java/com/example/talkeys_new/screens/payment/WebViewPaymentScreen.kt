@@ -115,22 +115,20 @@ fun WebViewPaymentScreen(
                                 super.onPageStarted(view, url, favicon)
                                 currentUrl = url ?: ""
                                 isLoading = true
-                                Log.d("WebViewPayment", "Page started: $url")
+                                Log.d("WebViewPayment", "Payment page started loading")
                             }
                             
                             override fun onPageFinished(view: WebView?, url: String?) {
                                 super.onPageFinished(view, url)
                                 isLoading = false
                                 currentUrl = url ?: ""
-                                Log.d("WebViewPayment", "Page finished: $url")
+                                Log.d("WebViewPayment", "Payment page finished loading")
                                 
                                 // Check for session expired error
                                 view?.evaluateJavascript(
                                     "(function() { return document.body.innerText; })();"
                                 ) { html ->
                                     val bodyText = html?.replace("\\u003C", "<")?.replace("\\u003E", ">") ?: ""
-                                    Log.d("WebViewPayment", "Page content check: ${bodyText.take(200)}")
-                                    
                                     if (bodyText.contains("session expired", ignoreCase = true) ||
                                         bodyText.contains("Session expired", ignoreCase = false)) {
                                         Log.w("WebViewPayment", "Session expired detected in page content")
@@ -148,7 +146,7 @@ fun WebViewPaymentScreen(
                                 request: WebResourceRequest?
                             ): Boolean {
                                 val url = request?.url?.toString() ?: return false
-                                Log.d("WebViewPayment", "🔗 URL loading: $url")
+                                Log.d("WebViewPayment", "Payment navigation received")
                                 
                                 // Check for callback URLs first
                                 if (checkCallbackUrl(url, navController, merchantOrderId, passId)) {
@@ -158,7 +156,7 @@ fun WebViewPaymentScreen(
                                 
                                 // Check for merchant redirect (when session expires)
                                 if (url.contains("api.talkeys.xyz") || url.contains("talkeys")) {
-                                    Log.d("WebViewPayment", "🔄 Merchant redirect detected: $url")
+                                    Log.d("WebViewPayment", "Merchant redirect detected")
                                     // This is likely a redirect back to merchant after session expiry
                                     // Navigate to verification screen to check payment status
                                     navController.navigate("payment_verification/$merchantOrderId/$passId")
@@ -221,16 +219,11 @@ fun WebViewPaymentScreen(
                                 }
                             }
                             
-                            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean {
-                                consoleMessage?.let {
-                                    Log.d("WebViewConsole", "${it.message()} -- From line ${it.lineNumber()} of ${it.sourceId()}")
-                                }
-                                return true
-                            }
+                            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean = true
                         }
                         
                         // Load the payment URL
-                        Log.d("WebViewPayment", "Loading payment URL: $paymentUrl")
+                        Log.d("WebViewPayment", "Loading payment page")
                         loadUrl(paymentUrl)
                     }
                 },
@@ -314,7 +307,7 @@ private fun checkCallbackUrl(
     merchantOrderId: String,
     passId: String
 ): Boolean {
-    Log.d("WebViewPayment", "Checking callback URL: $url")
+    Log.d("WebViewPayment", "Checking payment callback")
     
     return when {
         // Success callback
@@ -345,8 +338,7 @@ private fun checkCallbackUrl(
         // Error callback
         url.contains("/ticket/error") || url.contains("payment/error") -> {
             Log.d("WebViewPayment", "Error callback detected")
-            val reason = extractQueryParam(url, "reason")
-            Log.e("WebViewPayment", "Payment error: $reason")
+            Log.e("WebViewPayment", "Payment error callback detected")
             navController.popBackStack()
             true
         }

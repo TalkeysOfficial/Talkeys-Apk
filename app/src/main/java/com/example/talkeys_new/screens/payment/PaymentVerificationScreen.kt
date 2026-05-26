@@ -391,7 +391,7 @@ private suspend fun verifyPayment(
     onResult: (VerificationState) -> Unit
 ) {
     try {
-        Log.d("PaymentVerification", "Verifying payment for order: $merchantOrderId")
+        Log.d("PaymentVerification", "Verifying payment status")
         
         // Get auth token
         val tokenManager = TokenManager(context)

@@ -60,12 +60,12 @@ object PhonePePaymentManager : KoinComponent {
             delay(60000) // Wait 60 seconds
             
             currentMerchantOrderId?.let { orderId ->
-                Log.d(TAG, "⏰ Payment timeout reached, checking status for: $orderId")
+                Log.d(TAG, "⏰ Payment timeout reached, checking status")
                 Log.d(TAG, "💡 This handles cases where PhonePe WebView becomes unresponsive")
                 Log.d(TAG, "🔍 WebView might show errors but payment could still succeed")
                 
                 verifyPaymentStatusOnServer(orderId, authToken) { result ->
-                    Log.d(TAG, "📋 Timeout verification result: $result")
+                    Log.d(TAG, "📋 Timeout verification completed")
                     when (result) {
                         is PaymentResult.Success -> {
                             Log.d(TAG, "✅ Payment succeeded despite WebView timeout/errors!")
@@ -115,21 +115,13 @@ object PhonePePaymentManager : KoinComponent {
                             val paymentToken = paymentOrderData.token
                             val orderId = paymentOrderData.orderId
                             
-                            Log.d(TAG, "✅ Received payment data from backend")
-                            Log.d(TAG, "📱 Mobile SDK Environment: ${PhonePeConfig.getEnvironmentName()}")
-                            Log.d(TAG, "🏪 Merchant ID: ${PhonePeConfig.MERCHANT_ID}")
-                            Log.d(TAG, "🔑 Client ID: ${PhonePeConfig.CLIENT_ID}")
-                            Log.d(TAG, "📋 Order ID: $orderId")
+                            Log.d(TAG, "Received payment data from backend (env=${PhonePeConfig.getEnvironmentName()})")
                             
                             // ✅ Debug token format
                             debugTokenFormat(paymentToken)
                             
                             if (paymentToken.startsWith("http") && paymentToken.contains("mercury")) {
-                                // Backend sent URL (for websites) - extract token for mobile app
-                                Log.d(TAG, "🌐 Website URL detected - extracting token for mobile app")
                                 val extractedToken = extractTokenFromUrl(paymentToken)
-                                Log.d(TAG, "📱 Extracted token for mobile SDK")
-                                
                                 startPhonePeCheckout(
                                     activity = activity,
                                     token = extractedToken,
@@ -137,12 +129,6 @@ object PhonePePaymentManager : KoinComponent {
                                     activityResultLauncher = activityResultLauncher
                                 )
                             } else {
-                                // Backend sent token directly (correct for mobile apps)
-                                Log.d(TAG, "📱 Direct token received (correct for mobile apps)")
-                                Log.d(TAG, "⚠️ If this fails with 'Invalid Token format', check environment mismatch:")
-                                Log.d(TAG, "⚠️ Backend environment must match mobile SDK environment")
-                                Log.d(TAG, "⚠️ Current SDK: ${PhonePeConfig.getEnvironmentName()}")
-                                
                                 startPhonePeCheckout(
                                     activity = activity,
                                     token = paymentToken,
@@ -183,8 +169,7 @@ object PhonePePaymentManager : KoinComponent {
         activityResultLauncher: ActivityResultLauncher<Intent>
     ) {
         try {
-            Log.d(TAG, "🚀 Starting PhonePe checkout for Order ID: $orderId")
-            Log.d(TAG, "📱 Token length: ${token.length}, Token preview: ${token.take(50)}...")
+            Log.d(TAG, "Starting PhonePe checkout")
             
             // ✅ Enhanced token validation
             if (token.isBlank()) {
@@ -203,22 +188,12 @@ object PhonePePaymentManager : KoinComponent {
             }
             
             if (token.length < 200) {
-                Log.w(TAG, "⚠️ Token seems short for PhonePe format (${token.length} chars)")
+                Log.w(TAG, "⚠️ Token seems shorter than expected for PhonePe format")
                 Log.w(TAG, "⚠️ Expected PhonePe tokens are typically 400+ characters")
             }
             
-            // ✅ Enhanced PhonePe app detection with multiple checks
             val isPhonePeInstalled = checkPhonePeAppInstallation(activity)
-            Log.d(TAG, "📱 PhonePe app installed: $isPhonePeInstalled")
-            
-            // ✅ Additional validation before SDK call
-            Log.d(TAG, "🔍 Pre-checkout validation:")
-            Log.d(TAG, "  - SDK Environment: ${PhonePeConfig.getEnvironmentName()}")
-            Log.d(TAG, "  - Merchant ID: ${PhonePeConfig.MERCHANT_ID}")
-            Log.d(TAG, "  - Client ID: ${PhonePeConfig.CLIENT_ID}")
-            Log.d(TAG, "  - Token format: ${if (token.startsWith("http")) "URL" else "Direct token"}")
-            Log.d(TAG, "  - Order ID format: $orderId")
-            Log.d(TAG, "  - PhonePe App Available: $isPhonePeInstalled")
+            Log.d(TAG, "PhonePe app installed=$isPhonePeInstalled, sdkEnv=${PhonePeConfig.getEnvironmentName()}")
             
             // ✅ Try PhonePe SDK first (will use app if available, WebView if not)
             try {
@@ -244,11 +219,8 @@ object PhonePePaymentManager : KoinComponent {
             }
             
         } catch (ex: PhonePeInitException) {
-            Log.e(TAG, "❌ PhonePe initialization error: ${ex.message}", ex)
-            Log.e(TAG, "SDK Environment: ${PhonePeConfig.getEnvironmentName()}")
-            Log.e(TAG, "Merchant ID: ${PhonePeConfig.MERCHANT_ID}")
-            Log.e(TAG, "Client ID: ${PhonePeConfig.CLIENT_ID}")
-            Log.e(TAG, "💡 Solution: Restart the app to reinitialize PhonePe SDK")
+            Log.e(TAG, "PhonePe initialization error: ${ex.message}", ex)
+            Log.e(TAG, "SDK env=${PhonePeConfig.getEnvironmentName()}")
             
             // Try to reinitialize SDK once
             if (reinitializeSDK(activity)) {
@@ -321,7 +293,7 @@ object PhonePePaymentManager : KoinComponent {
                 "$baseUrl?token=$token"
             }
             
-            Log.d(TAG, "🌐 WebView URL: ${paymentUrl.take(100)}...")
+            Log.d(TAG, "🌐 Opening PhonePe WebView fallback")
             
             // Open in WebView or browser
             val intent = Intent(Intent.ACTION_VIEW, Uri.parse(paymentUrl))
@@ -382,7 +354,7 @@ object PhonePePaymentManager : KoinComponent {
             val token = uri.getQueryParameter("token")
             
             if (token != null) {
-                Log.d(TAG, "Extracted token from URL: ${token.take(50)}...")
+                Log.d(TAG, "Extracted checkout token from payment URL")
                 token
             } else {
                 Log.w(TAG, "No token parameter found in URL, using full URL")
@@ -421,16 +393,7 @@ object PhonePePaymentManager : KoinComponent {
     ) {
         Log.d(TAG, "🔍 Handling payment result with code: $resultCode")
         
-        // ✅ Enhanced logging for debugging
-        data?.let { intent ->
-            Log.d(TAG, "📋 Payment result data extras:")
-            intent.extras?.let { bundle ->
-                for (key in bundle.keySet()) {
-                    val value = bundle.get(key)
-                    Log.d(TAG, "  $key: $value")
-                }
-            } ?: Log.d(TAG, "  No extras in result data")
-        } ?: Log.d(TAG, "No result data received")
+        Log.d(TAG, "Payment result includes data=${data != null}")
         
         val callback = onPaymentResult ?: currentPaymentCallback
         
@@ -440,7 +403,7 @@ object PhonePePaymentManager : KoinComponent {
         Log.d(TAG, "💡 JavaScript errors in PhonePe WebView don't indicate payment failure")
         
         currentMerchantOrderId?.let { merchantOrderId ->
-            Log.d(TAG, "🔍 Starting payment verification for order: $merchantOrderId")
+            Log.d(TAG, "🔍 Starting payment verification")
             Log.d(TAG, "📱 Result code was: $resultCode (ignoring due to WebView issues)")
             
             CoroutineScope(Dispatchers.IO).launch {
@@ -476,8 +439,6 @@ object PhonePePaymentManager : KoinComponent {
                     Log.d(TAG, "✅ Payment verification successful (attempt $currentAttempt)")
                     Log.d(TAG, "📊 Raw Status from backend: '${paymentStatusData.paymentStatus}'")
                     Log.d(TAG, "📊 Status uppercase: '${paymentStatusData.paymentStatus.uppercase()}'")
-                    Log.d(TAG, "📊 PassId: ${paymentStatusData.passId}")
-                    Log.d(TAG, "📊 PassUUID: ${paymentStatusData.passUUID}")
                     
                     withContext(Dispatchers.Main) {
                         when (paymentStatusData.paymentStatus.uppercase()) {
@@ -564,7 +525,7 @@ object PhonePePaymentManager : KoinComponent {
         authToken: String? = null,
         onResult: ((PaymentResult) -> Unit)?
     ) {
-        Log.d(TAG, "Verifying payment status for order: $merchantOrderId")
+        Log.d(TAG, "Verifying payment status")
         
         CoroutineScope(Dispatchers.IO).launch {
             try {
@@ -620,38 +581,14 @@ object PhonePePaymentManager : KoinComponent {
      * Debug token format and provide recommendations
      */
     private fun debugTokenFormat(token: String) {
-        Log.d(TAG, "🔍 Token Analysis:")
-        Log.d(TAG, "  Length: ${token.length}")
-        Log.d(TAG, "  Preview: ${token.take(50)}...")
-        
+        // Non-sensitive format diagnostics only — token contents never logged.
         when {
-            token.startsWith("eyJ") -> {
-                Log.e(TAG, "❌ JWT Token Detected!")
-                Log.e(TAG, "💡 Backend should return PhonePe token from Create Order API")
-                Log.e(TAG, "💡 Check: response.data.instrumentResponse.redirectInfo.url")
-            }
-            token.startsWith("http") -> {
-                Log.w(TAG, "🌐 URL Format Detected")
-                Log.w(TAG, "💡 Extracting token parameter for mobile SDK")
-            }
-            token.length > 400 -> {
-                Log.d(TAG, "✅ Looks like proper PhonePe token format")
-            }
-            token.length < 200 -> {
-                Log.w(TAG, "⚠️ Token seems short for PhonePe format")
-                Log.w(TAG, "💡 Verify backend is returning correct PhonePe token")
-            }
-            else -> {
-                Log.d(TAG, "🤔 Unknown token format - proceeding with caution")
-            }
+            token.startsWith("eyJ") -> Log.e(TAG, "Unexpected JWT-format token from backend")
+            token.startsWith("http") -> Log.w(TAG, "Token in URL form; will extract param")
+            token.length < 200 -> Log.w(TAG, "Token shorter than expected for PhonePe format")
         }
-        
-        // Additional validation
-        if (token.contains(" ")) {
-            Log.w(TAG, "⚠️ Token contains spaces - might be malformed")
-        }
-        if (token.contains("\n") || token.contains("\r")) {
-            Log.w(TAG, "⚠️ Token contains line breaks - might be malformed")
+        if (token.contains(" ") || token.contains("\n") || token.contains("\r")) {
+            Log.w(TAG, "Token contains whitespace; may be malformed")
         }
     }
     
@@ -713,11 +650,11 @@ object PhonePePaymentManager : KoinComponent {
         authToken: String? = null,
         onResult: (PaymentResult) -> Unit
     ) {
-        Log.d(TAG, "🔍 Manual payment verification requested for: $merchantOrderId")
+        Log.d(TAG, "🔍 Manual payment verification requested")
         Log.d(TAG, "💡 This bypasses WebView issues and checks actual payment status")
         
         verifyPaymentStatusOnServer(merchantOrderId, authToken) { result ->
-            Log.d(TAG, "📋 Manual verification result: $result")
+            Log.d(TAG, "📋 Manual verification completed")
             onResult(result)
         }
     }
@@ -728,11 +665,10 @@ object PhonePePaymentManager : KoinComponent {
     fun getCurrentPaymentInfo(): String {
         return """
             Current Payment Info:
-            - Merchant Order ID: ${currentMerchantOrderId ?: "None"}
+            - Has Merchant Order ID: ${currentMerchantOrderId != null}
             - Has Callback: ${currentPaymentCallback != null}
             - Has Auth Token: ${currentAuthToken != null}
             - SDK Environment: ${PhonePeConfig.getEnvironmentName()}
-            - Merchant ID: ${PhonePeConfig.MERCHANT_ID}
         """.trimIndent()
     }
     
@@ -745,11 +681,11 @@ object PhonePePaymentManager : KoinComponent {
         Log.d(TAG, "💡 This bypasses WebView JavaScript issues and checks actual payment status")
         
         currentMerchantOrderId?.let { merchantOrderId ->
-            Log.d(TAG, "🔍 Checking payment status for order: $merchantOrderId")
+            Log.d(TAG, "🔍 Checking payment status")
             
             CoroutineScope(Dispatchers.IO).launch {
                 verifyPaymentStatusWithRetry(merchantOrderId, currentAuthToken, { result ->
-                    Log.d(TAG, "📋 WebView error bypass result: $result")
+                    Log.d(TAG, "📋 WebView error status check completed")
                     onResult(result)
                 }, maxRetries = 2)
             }
@@ -764,13 +700,13 @@ object PhonePePaymentManager : KoinComponent {
      */
     fun forcePaymentVerification(): String {
         return currentMerchantOrderId?.let { orderId ->
-            Log.d(TAG, "🔍 Force verification requested for: $orderId")
+            Log.d(TAG, "🔍 Force verification requested")
             
             CoroutineScope(Dispatchers.IO).launch {
                 verifyPaymentStatusWithRetry(orderId, currentAuthToken, currentPaymentCallback, maxRetries = 1)
             }
             
-            "Verification started for order: $orderId"
+            "Verification started"
         } ?: "No active payment to verify"
     }
 

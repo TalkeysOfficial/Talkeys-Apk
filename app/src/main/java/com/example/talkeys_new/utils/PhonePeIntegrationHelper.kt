@@ -62,7 +62,7 @@ object PhonePeIntegrationHelper {
         authToken: String? = null,
         onResult: (PhonePePaymentManager.PaymentResult) -> Unit
     ) {
-        Log.d(TAG, "🔍 Manual payment verification for: $merchantOrderId")
+        Log.d(TAG, "🔍 Manual payment verification requested")
         
         PhonePePaymentManager.manualPaymentVerification(
             merchantOrderId = merchantOrderId,
@@ -100,8 +100,6 @@ object PhonePeIntegrationHelper {
         return """
             PhonePe SDK Status:
             - Environment: ${PhonePeConfig.getEnvironmentName()}
-            - Merchant ID: ${PhonePeConfig.MERCHANT_ID}
-            - Client ID: ${PhonePeConfig.CLIENT_ID}
             - Production Mode: ${PhonePeConfig.IS_PRODUCTION}
             
             ${PhonePePaymentManager.getCurrentPaymentInfo()}

@@ -126,7 +126,5 @@ class ActivityGoogleSignInProvider(
     }
 }
 
-actual fun createGoogleSignInProvider(): GoogleSignInProvider {
-    // This would need to be configured with proper context
-    throw NotImplementedError("Use AndroidGoogleSignInProvider or ActivityGoogleSignInProvider with proper context")
-}
+// Phase 0: actual factory removed. Use AndroidGoogleSignInProvider(context)
+// or ActivityGoogleSignInProvider(activity) directly.

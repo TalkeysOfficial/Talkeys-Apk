@@ -24,17 +24,13 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
 
     override fun onMessageReceived(remoteMessage: RemoteMessage) {
         // Handle FCM messages here
-        Log.d(TAG, "From: ${remoteMessage.from}")
+        Log.d(TAG, "FCM message received")
 
-        // Check if message contains a data payload
         if (remoteMessage.data.isNotEmpty()) {
-            Log.d(TAG, "Message data payload: ${remoteMessage.data}")
             handleDataMessage(remoteMessage.data)
         }
 
-        // Check if message contains a notification payload
         remoteMessage.notification?.let {
-            Log.d(TAG, "Message Notification Body: ${it.body}")
             sendNotification(it.title, it.body)
         }
     }
@@ -46,50 +42,31 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
      */
     override fun onNewToken(token: String) {
         val timestamp = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date())
-        
-        Log.d(TAG, "=== FCM Token Generation Event ===")
-        Log.d(TAG, "Timestamp: $timestamp")
-        Log.d(TAG, "New FCM Token: $token")
-        Log.d(TAG, "Token Length: ${token.length}")
-        
-        // Check if this is a new token or refresh
+
+        Log.d(TAG, "FCM token event at $timestamp")
+
         val previousToken = FCMTokenManager.getStoredToken(this)
-        if (previousToken != null && previousToken != token) {
-            Log.d(TAG, "Token REFRESHED - Previous token was different")
-            Log.d(TAG, "Previous Token: $previousToken")
-        } else if (previousToken == null) {
-            Log.d(TAG, "Token GENERATED - First time generation")
-        } else {
-            Log.d(TAG, "Token UNCHANGED - Same as stored token")
+        when {
+            previousToken == null -> Log.d(TAG, "Token generated (first time)")
+            previousToken != token -> Log.d(TAG, "Token refreshed")
+            else -> Log.d(TAG, "Token unchanged")
         }
-        
-        // Store the new token using FCMTokenManager
+
         FCMTokenManager.storeToken(this, token)
-        
-        // Store additional metadata
         storeTokenMetadata(token, timestamp)
-        
-        // If you want to send messages to this application instance or
-        // manage this apps subscriptions on the server side, send the
-        // FCM registration token to your app server.
         sendRegistrationToServer(token)
-        
-        Log.d(TAG, "=== Token Processing Complete ===")
     }
 
     private fun handleDataMessage(data: Map<String, String>) {
         // Handle data payload of FCM messages here
-        // You can extract custom data and perform actions
-        Log.d(TAG, "Handling data message: $data")
     }
 
     private fun sendRegistrationToServer(token: String?) {
         // TODO: Implement this method to send token to your app server
         // This should make an API call to your backend to update the token
         // for the current user
-        Log.d(TAG, "📤 Sending token to server...")
-        Log.d(TAG, "Token: $token")
-        
+        Log.d(TAG, "TODO: send FCM token to backend (not yet implemented)")
+
         // Example of what this would look like with a real API:
         /*
         val apiService = RetrofitClient.getApiService()
@@ -112,7 +89,6 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         })
         */
         
-        Log.d(TAG, "📝 TODO: Replace with actual API call to your backend")
     }
     
     private fun storeTokenMetadata(token: String, timestamp: String) {

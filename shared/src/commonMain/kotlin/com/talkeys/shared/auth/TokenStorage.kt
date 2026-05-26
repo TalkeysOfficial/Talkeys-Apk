@@ -8,5 +8,5 @@ interface TokenStorage {
     suspend fun hasToken(): Boolean
 }
 
-// Expect function to get platform-specific implementation
-expect fun createTokenStorage(): TokenStorage
+// Phase 0: expect/actual factory removed — wiring is deferred to Phase 5.
+// Construct platform implementations directly (AndroidTokenStorage / IOSTokenStorage).

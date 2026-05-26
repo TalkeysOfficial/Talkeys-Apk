@@ -41,26 +41,20 @@ class GoogleSignInManager(private val context: Context) {
     
     // Save user profile data from Google Sign-In
     suspend fun saveUserProfile(userProfile: UserProfile) {
-        android.util.Log.d("GoogleSignInManager", "Saving user profile: $userProfile")
         context.dataStore.edit { preferences ->
             preferences[USER_ID_KEY] = userProfile.id
             preferences[USER_NAME_KEY] = userProfile.name
             preferences[USER_EMAIL_KEY] = userProfile.email
             preferences[USER_GIVEN_NAME_KEY] = userProfile.givenName
             preferences[USER_FAMILY_NAME_KEY] = userProfile.familyName
-            userProfile.profileImageUrl?.let { 
-                preferences[USER_PROFILE_IMAGE_KEY] = it 
+            userProfile.profileImageUrl?.let {
+                preferences[USER_PROFILE_IMAGE_KEY] = it
             }
         }
-        android.util.Log.d("GoogleSignInManager", "User profile saved successfully")
     }
-    
+
     // Get current user profile
-    suspend fun getUserProfile(): UserProfile {
-        val profile = userProfile.first()
-        android.util.Log.d("GoogleSignInManager", "Retrieved user profile: $profile")
-        return profile
-    }
+    suspend fun getUserProfile(): UserProfile = userProfile.first()
     
     // Clear user profile data
     suspend fun clearUserProfile() {

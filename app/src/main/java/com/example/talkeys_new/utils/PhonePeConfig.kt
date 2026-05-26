@@ -10,10 +10,12 @@ package com.example.talkeys_new.utils
  */
 object PhonePeConfig {
     
-    // Your PhonePe Business Dashboard Credentials (Exact terminology from dashboard)
-    const val MERCHANT_ID = "M22ZDT307F584"  // PRODUCTION Merchant ID
-    const val CLIENT_ID = "SU2504181253408025787154"  // PRODUCTION Client Id
-    const val CLIENT_SECRET = "4d9bafd5-1172-4695-a212-beb19efd70ed"  // PRODUCTION Client Secret
+    // PhonePe Business Dashboard Credentials
+    // SECURITY: CLIENT_SECRET must never be stored in the mobile binary.
+    // It belongs on the backend server only. The value previously committed here
+    // has been removed and MUST be rotated — see CURRENT_CLIENT_API_AUDIT.md.
+    const val MERCHANT_ID = "M22ZDT307F584"
+    const val CLIENT_ID = "SU2504181253408025787154"
     
     // Environment Configuration
     const val IS_PRODUCTION = true // ⚠️ PRODUCTION MODE - REAL MONEY WILL BE CHARGED!
@@ -38,31 +40,7 @@ object PhonePeConfig {
     }
     
     /**
-     * IMPORTANT NOTES:
-     * 
-     * 1. CLIENT_SECRET is used for:
-     *    - Creating payment requests on your backend
-     *    - Generating checksums for API calls
-     *    - Verifying webhook responses
-     *    - NEVER use this in the mobile app directly
-     * 
-     * 2. CLIENT_ID is used for:
-     *    - SDK initialization (safe to use in app)
-     *    - API requests identification
-     * 
-     * 3. For Production:
-     *    - Change IS_PRODUCTION to true
-     *    - Set enableLogging to false in TalkeysApplication
-     *    - Use PhonePeEnvironment.RELEASE
-     *    
-     *    Currently in TEST mode:
-     *    - IS_PRODUCTION = false
-     *    - Using SANDBOX environment
-     *    - Logging enabled for debugging
-     * 
-     * 4. Backend Integration Required:
-     *    - Create Order API: Use CLIENT_SECRET to generate checksum
-     *    - Order Status API: Use CLIENT_SECRET to verify response
-     *    - Webhook handling: Use CLIENT_SECRET to validate callbacks
+     * CLIENT_ID is used for SDK initialization (safe to embed in the app).
+     * CLIENT_SECRET belongs on the backend only — never in a mobile binary.
      */
 }

@@ -29,7 +29,6 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.first
-import com.talkeys.shared.Greeting
 import com.talkeys.shared.initKoin
 
 class MainActivity : ComponentActivity() {
@@ -53,7 +52,7 @@ class MainActivity : ComponentActivity() {
     ) { result ->
         Log.d(TAG, "🔍 PhonePe payment result received")
         Log.d(TAG, "📋 Result code: ${result.resultCode}")
-        Log.d(TAG, "📋 Data: ${result.data}")
+        Log.d(TAG, "📋 Result includes data=${result.data != null}")
         
         // ✅ CRITICAL: Always verify payment status regardless of result code
         // WebView JavaScript errors can cause wrong result codes even when payment succeeds
@@ -74,11 +73,7 @@ class MainActivity : ComponentActivity() {
         
         // Initialize KMP shared module
         initKoin()
-        
-        // Test shared module
-        val greeting = Greeting().greet()
-        Log.d("KMP_TEST", greeting)
-        
+
         // Check Google Play Services availability
         if (checkGooglePlayServices()) {
             // Log FCM initialization status
@@ -183,28 +178,20 @@ class MainActivity : ComponentActivity() {
     private fun retrieveFCMToken() {
         FCMTokenManager.getCurrentToken { token ->
             if (token != null) {
-                Log.d(TAG, " FCM Registration Token: $token")
-                Log.d(TAG, " COPY THIS TOKEN FOR FIREBASE CONSOLE TESTING:")
-                Log.d(TAG, " ================================")
-                Log.d(TAG, " $token")
-                Log.d(TAG, " ================================")
-                
-                // Store token locally
+                Log.d(TAG, "FCM registration token received")
                 FCMTokenManager.storeToken(this, token)
-                
-                // Send token to your app server for targeting this device
                 sendTokenToServer(token)
             } else {
                 Log.e(TAG, "Failed to retrieve FCM token")
             }
         }
     }
-    
+
     private fun sendTokenToServer(token: String) {
         // TODO: Implement this method to send token to your app server
         // This is where you would typically make an API call to your backend
         // to associate this token with the current user
-        Log.d(TAG, "TODO: Send token to server: $token")
+        Log.d(TAG, "TODO: send FCM token to backend (not yet implemented)")
     }
     
     /**
@@ -341,7 +328,7 @@ class MainActivity : ComponentActivity() {
         Log.d(TAG, "🧪 TESTING MODE: Force enabling FCM")
         FCMInitializationManager.enableAll(this)
         initializeFCMFeatures()
-        Log.d(TAG, "🧪 FCM enabled for testing - check logs for token")
+        Log.d(TAG, "🧪 FCM enabled for testing")
     }
 
     /**
@@ -349,30 +336,10 @@ class MainActivity : ComponentActivity() {
      * Call this to see if token exists and what it is
      */
     private fun debugTokenStatus() {
-        Log.d(TAG, "🔍 DEBUG: Checking current token status...")
-        
-        // Check if FCM is enabled
         val isEnabled = FCMInitializationManager.isAutoInitEnabled()
-        Log.d(TAG, "🔍 FCM Auto-Init Enabled: $isEnabled")
-        
-        // Check stored token
-        val storedToken = FCMTokenManager.getStoredToken(this)
-        if (storedToken != null) {
-            Log.d(TAG, "🔍 Stored Token Found:")
-            Log.d(TAG, "🔍 ================================")
-            Log.d(TAG, "🔍 $storedToken")
-            Log.d(TAG, "🔍 ================================")
-        } else {
-            Log.d(TAG, "🔍 No stored token found")
-        }
-        
-        // Try to get fresh token
-        if (isEnabled) {
-            Log.d(TAG, "🔍 Attempting to get fresh token...")
-            retrieveFCMToken()
-        } else {
-            Log.d(TAG, "🔍 FCM disabled - enable it first to get token")
-        }
+        val hasToken = FCMTokenManager.getStoredToken(this) != null
+        Log.d(TAG, "FCM autoInit=$isEnabled, hasStoredToken=$hasToken")
+        if (isEnabled) retrieveFCMToken()
     }
     
     enum class ConsentStatus(val value: Int) {
@@ -394,8 +361,7 @@ class MainActivity : ComponentActivity() {
     private fun handlePhonePePaymentResult(paymentResult: PhonePePaymentManager.PaymentResult) {
         when (paymentResult) {
             is PhonePePaymentManager.PaymentResult.Success -> {
-                Log.d(TAG, "Payment successful: ${paymentResult.message}")
-                Log.d(TAG, "Pass ID: ${paymentResult.passId}, Pass UUID: ${paymentResult.passUUID}")
+                Log.d(TAG, "Payment successful")
                 navigateToRegistrationSuccess()
             }
             is PhonePePaymentManager.PaymentResult.Failed -> {
@@ -466,7 +432,7 @@ class MainActivity : ComponentActivity() {
      * @param orderId Order ID from your backend (Create Order API response)
      */
     fun initiatePhonePePayment(token: String, orderId: String) {
-        Log.d(TAG, "Initiating PhonePe payment for order: $orderId")
+        Log.d(TAG, "Initiating PhonePe payment")
         
         PhonePePaymentManager.startCheckout(
             activity = this,
@@ -553,18 +519,11 @@ class MainActivity : ComponentActivity() {
      * Handle successful payment verification
      */
     private fun handlePaymentSuccess(passId: String, passUUID: String?) {
-        Log.d(TAG, "Payment success confirmed - PassID: $passId")
-        
-        if (passUUID != null) {
-            Log.d(TAG, "Pass UUID: $passUUID")
-        } else {
-            Log.d(TAG, "Pass UUID not provided by backend (this is optional)")
-        }
-        
+        Log.d(TAG, "Payment success confirmed")
+
         // Navigate to success screen or show success message
         // Example: navigateToRegistrationSuccess(passId, passUUID)
-        
-        // Clear stored order ID
+
         clearCurrentMerchantOrderId()
     }
     

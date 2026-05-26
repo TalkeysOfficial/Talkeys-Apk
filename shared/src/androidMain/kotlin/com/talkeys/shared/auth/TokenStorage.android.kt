@@ -38,6 +38,4 @@ class AndroidTokenStorage(private val context: Context) : TokenStorage {
     }
 }
 
-actual fun createTokenStorage(): TokenStorage {
-    throw NotImplementedError("Use AndroidTokenStorage with proper context")
-}
+// Phase 0: actual factory removed. Construct AndroidTokenStorage(context) directly.
