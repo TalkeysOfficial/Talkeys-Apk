@@ -43,7 +43,7 @@ class PaymentRepository(private val paymentApiService: PaymentApiService) {
             result.fold(
                 onSuccess = { response ->
                     if (response.success && response.data != null) {
-                        logger.d { "Ticket booking successful. Order ID: ${response.data.merchantOrderId}" }
+                        logger.d { "Ticket booking successful" }
                         Result.success(response.data)
                     } else {
                         val error = "Booking failed: ${response.message}"
@@ -66,7 +66,7 @@ class PaymentRepository(private val paymentApiService: PaymentApiService) {
      * Verify payment status after PhonePe payment completion
      */
     suspend fun verifyPaymentStatus(merchantOrderId: String, authToken: String? = null): Result<PaymentStatusData> {
-        logger.d { "Verifying payment status for order: $merchantOrderId" }
+        logger.d { "Verifying payment status" }
         
         return try {
             val result = paymentApiService.checkPaymentStatus(merchantOrderId, authToken)
@@ -74,9 +74,8 @@ class PaymentRepository(private val paymentApiService: PaymentApiService) {
             result.fold(
                 onSuccess = { response ->
                     if (response.success && response.data != null) {
-                        // ✅ Log both response status and actual payment status for debugging
-                        logger.d { "Response status: ${response.status} for order: $merchantOrderId" }
-                        logger.d { "Payment data status: ${response.data.paymentStatus} for order: $merchantOrderId" }
+                        logger.d { "Payment response status: ${response.status}" }
+                        logger.d { "Payment data status: ${response.data.paymentStatus}" }
                         
                         // ✅ Additional validation for payment status data
                         val paymentData = response.data
@@ -90,16 +89,15 @@ class PaymentRepository(private val paymentApiService: PaymentApiService) {
                             return Result.failure(Exception("Invalid payment data: paymentStatus is missing"))
                         }
                         
-                        // ✅ Log passUUID status for debugging
                         if (paymentData.passUUID != null) {
-                            logger.d { "Payment data includes passUUID: ${paymentData.passUUID}" }
+                            logger.d { "Payment data includes a pass UUID" }
                         } else {
                             logger.d { "Payment data does not include passUUID (this is now optional)" }
                         }
                         
                         Result.success(paymentData)
                     } else {
-                        val error = "Payment verification failed for order: $merchantOrderId - Response: success=${response.success}, data=${response.data}"
+                        val error = "Payment verification failed: success=${response.success}"
                         logger.e { error }
                         Result.failure(Exception(error))
                     }

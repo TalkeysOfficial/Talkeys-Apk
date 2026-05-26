@@ -80,7 +80,7 @@ fun LoginScreen(navController: NavController) {
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         Log.d("LoginScreen", "Google Sign-In result received")
         val token = googleAuthClient.getIdTokenFromIntent(result.data)
-        Log.d("LoginScreen", "ID Token: ${if (token != null) "Token received" else "Token is null"}")
+        Log.d("LoginScreen", "ID token present=${token != null}")
 
         if (token != null) {
             coroutineScope.launch {
@@ -96,14 +96,6 @@ fun LoginScreen(navController: NavController) {
                     
                     // Save Google user profile data
                     googleAccount?.let { account ->
-                        Log.d("LoginScreen", "Google Account Details:")
-                        Log.d("LoginScreen", "ID: ${account.id}")
-                        Log.d("LoginScreen", "Display Name: ${account.displayName}")
-                        Log.d("LoginScreen", "Email: ${account.email}")
-                        Log.d("LoginScreen", "Photo URL: ${account.photoUrl}")
-                        Log.d("LoginScreen", "Given Name: ${account.givenName}")
-                        Log.d("LoginScreen", "Family Name: ${account.familyName}")
-                        
                         val userProfile = UserProfile(
                             id = account.id ?: "",
                             name = account.displayName ?: "",
@@ -112,24 +104,18 @@ fun LoginScreen(navController: NavController) {
                             givenName = account.givenName ?: "",
                             familyName = account.familyName ?: ""
                         )
-                        
-                        Log.d("LoginScreen", "Saving user profile: $userProfile")
                         googleSignInManager.saveUserProfile(userProfile)
-                        Log.d("LoginScreen", "User profile saved successfully")
-                        
-                        // Verify the saved data
-                        val savedProfile = googleSignInManager.getUserProfile()
-                        Log.d("LoginScreen", "Verified saved profile: $savedProfile")
+                        Log.d("LoginScreen", "Google profile saved locally")
                     } ?: run {
                         Log.e("LoginScreen", "Google account is null")
                     }
-                    
+
                     // Verify token with backend
-                    Log.d("LoginScreen", "Verifying token with backend...")
+                    Log.d("LoginScreen", "Verifying token with backend")
                     val response = RetrofitClient.instance.verifyToken("Bearer $token")
                     if (response.isSuccessful) {
                         val body = response.body()
-                        Log.d("LoginScreen", "Backend response: ${body?.name}")
+                        Log.d("LoginScreen", "Backend verification ok")
                         body?.accessToken?.let {
                             tokenManager.saveToken(it)
                             Log.d("LoginScreen", "JWT token saved")

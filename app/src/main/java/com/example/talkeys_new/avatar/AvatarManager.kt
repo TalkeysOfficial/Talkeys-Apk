@@ -281,10 +281,10 @@ class AvatarManager private constructor(
             val newConfig = currentConfig.copyWithValidation(userName = newName.trim())
             if (saveAvatarConfigSafely(newConfig)) {
                 _avatarConfig.value = newConfig
-                Log.d(TAG, "Updated user name to: ${newName.trim()}")
+                Log.d(TAG, "Updated avatar user name")
             }
         } else {
-            Log.w(TAG, "Invalid user name: $newName")
+            Log.w(TAG, "Invalid avatar user name")
         }
     }
     
@@ -340,7 +340,7 @@ class AvatarManager private constructor(
     fun getCurrentAvatarUrl(size: Int = AvatarConstants.DEFAULT_AVATAR_SIZE): String {
         return try {
             val url = _avatarConfig.value.generateAvatarUrl(size)
-            Log.d(TAG, "Generated avatar URL: $url")
+            Log.d(TAG, "Generated avatar URL")
             url
         } catch (e: Exception) {
             Log.e(TAG, "Error generating current avatar URL", e)

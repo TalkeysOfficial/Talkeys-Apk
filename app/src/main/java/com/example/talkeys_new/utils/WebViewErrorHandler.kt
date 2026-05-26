@@ -25,27 +25,21 @@ class WebViewErrorHandler {
                 override fun onConsoleMessage(consoleMessage: ConsoleMessage): Boolean {
                     val message = consoleMessage.message()
                     val level = consoleMessage.messageLevel()
-                    val source = consoleMessage.sourceId()
-                    val line = consoleMessage.lineNumber()
-                    
                     when (level) {
                         ConsoleMessage.MessageLevel.ERROR -> {
-                            Log.e(TAG, "🚨 WebView JavaScript Error:")
-                            Log.e(TAG, "  Message: $message")
-                            Log.e(TAG, "  Source: $source")
-                            Log.e(TAG, "  Line: $line")
+                            Log.e(TAG, "WebView JavaScript error received")
                             
                             // Check for known PhonePe WebView errors
                             analyzePhonePeError(message)
                         }
                         ConsoleMessage.MessageLevel.WARNING -> {
-                            Log.w(TAG, "⚠️ WebView Warning: $message")
+                            Log.w(TAG, "WebView warning received")
                         }
                         ConsoleMessage.MessageLevel.LOG -> {
-                            Log.d(TAG, "📋 WebView Log: $message")
+                            Log.d(TAG, "WebView console log received")
                         }
                         else -> {
-                            Log.i(TAG, "ℹ️ WebView Info: $message")
+                            Log.i(TAG, "WebView console info received")
                         }
                     }
                     
@@ -107,8 +101,7 @@ class WebViewErrorHandler {
             errorMessage: String,
             onSuggestVerification: () -> Unit
         ) {
-            Log.d(TAG, "🔧 WebView Error Handler:")
-            Log.d(TAG, "  Error: $errorMessage")
+            Log.d(TAG, "WebView error handler invoked")
             
             val shouldVerify = when {
                 errorMessage.contains("Error during payment processing") -> {

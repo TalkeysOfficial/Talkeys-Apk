@@ -22,7 +22,7 @@ object FCMTokenManager {
             }
 
             val token = task.result
-            Log.d(TAG, "FCM Token retrieved: $token")
+            Log.d(TAG, "FCM token retrieved")
             onTokenReceived(token)
         }
     }
@@ -99,12 +99,7 @@ object FCMTokenManager {
      */
     fun logTokenStatus(context: Context) {
         val tokenInfo = getTokenInfo(context)
-        Log.d(TAG, "=== FCM Token Status ===")
-        Log.d(TAG, "Has Token: ${tokenInfo.token != null}")
-        Log.d(TAG, "Token: ${tokenInfo.token ?: "Not available"}")
-        Log.d(TAG, "Last Generated: ${tokenInfo.timestamp ?: "Never"}")
-        Log.d(TAG, "Generation Count: ${tokenInfo.generationCount}")
-        Log.d(TAG, "========================")
+        Log.d(TAG, "FCM token present=${tokenInfo.token != null}, lastGenerated=${tokenInfo.timestamp ?: "never"}, count=${tokenInfo.generationCount}")
     }
 
     private fun getSharedPreferences(context: Context): SharedPreferences {

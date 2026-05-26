@@ -31,7 +31,7 @@ class AuthRepository(
             // Step 1: Perform platform-specific Google Sign-In
             when (val signInResult = googleSignInProvider.signIn()) {
                 is GoogleSignInResult.Success -> {
-                    logger.d { "Google Sign-In successful for user: ${signInResult.name}" }
+                    logger.d { "Google Sign-In successful" }
                     
                     // Step 2: Verify token with backend
                     val authResult = verifyTokenWithBackend(signInResult.idToken)
@@ -81,7 +81,7 @@ class AuthRepository(
             if (response.status.isSuccess()) {
                 val authResponse: AuthResponse = response.body()
                 if (authResponse.success && authResponse.user != null && authResponse.accessToken != null) {
-                    logger.d { "Backend verification successful for user: ${authResponse.user.name}" }
+                    logger.d { "Backend verification successful" }
                     AuthState.Success(authResponse.user, authResponse.accessToken)
                 } else {
                     logger.e { "Backend verification failed: ${authResponse.message}" }

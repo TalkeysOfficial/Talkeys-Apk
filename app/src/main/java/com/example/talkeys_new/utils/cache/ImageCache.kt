@@ -84,7 +84,7 @@ class ImageCache private constructor(private val context: Context) {
         
         // Check memory cache first
         memoryCache.get(cacheKey)?.let { bitmap ->
-            Log.d(TAG, "Image found in memory cache: $imageUrl")
+            Log.d(TAG, "Image found in memory cache")
             return@withContext bitmap
         }
         
@@ -96,11 +96,11 @@ class ImageCache private constructor(private val context: Context) {
                 if (bitmap != null) {
                     // Add to memory cache
                     memoryCache.put(cacheKey, bitmap)
-                    Log.d(TAG, "Image loaded from disk cache: $imageUrl")
+                    Log.d(TAG, "Image loaded from disk cache")
                     return@withContext bitmap
                 }
             } catch (e: Exception) {
-                Log.e(TAG, "Failed to load image from disk cache: $imageUrl", e)
+                Log.e(TAG, "Failed to load image from disk cache", e)
                 // Delete corrupted file
                 diskFile.delete()
             }
@@ -114,11 +114,11 @@ class ImageCache private constructor(private val context: Context) {
                 saveBitmapToDisk(bitmap, diskFile)
                 // Add to memory cache
                 memoryCache.put(cacheKey, bitmap)
-                Log.d(TAG, "Image downloaded and cached: $imageUrl")
+                Log.d(TAG, "Image downloaded and cached")
                 return@withContext bitmap
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to download image: $imageUrl", e)
+            Log.e(TAG, "Failed to download image", e)
         }
         
         return@withContext null
@@ -225,7 +225,7 @@ class ImageCache private constructor(private val context: Context) {
                 return@withContext null
             }
         } catch (e: Exception) {
-            Log.e(TAG, "Exception downloading image: $imageUrl", e)
+            Log.e(TAG, "Exception downloading image", e)
             return@withContext null
         }
     }

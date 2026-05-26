@@ -13,5 +13,6 @@ sealed class GoogleSignInResult {
     object Cancelled : GoogleSignInResult()
 }
 
-// Expect function to get platform-specific implementation
-expect fun createGoogleSignInProvider(): GoogleSignInProvider
+// Phase 0: expect/actual factory removed — wiring is deferred to Phase 5.
+// Construct a GoogleSignInProvider directly from each platform when needed
+// (e.g. AndroidGoogleSignInProvider(context) or IOSGoogleSignInProvider()).

@@ -366,39 +366,14 @@ private fun PhonePePaymentSection(
                                 return@launch
                             }
                             
-                            // 🔍 DEBUG: Decode JWT token to inspect role
-                            try {
-                                val parts = authToken.split(".")
-                                if (parts.size >= 2) {
-                                    // Decode the payload (second part of JWT)
-                                    val payload = String(android.util.Base64.decode(parts[1], android.util.Base64.URL_SAFE or android.util.Base64.NO_PADDING))
-                                    Log.d("WebViewPayment", "🔍 JWT Token Payload: $payload")
-                                    Log.d("WebViewPayment", "🔍 Check the 'role' field in the payload above")
-                                } else {
-                                    Log.e("WebViewPayment", "❌ Invalid JWT token format")
-                                }
-                            } catch (e: Exception) {
-                                Log.e("WebViewPayment", "❌ Failed to decode JWT token: ${e.message}")
-                            }
-                            
                             // Call backend to create payment order
                             val paymentRepository = org.koin.core.context.GlobalContext.get().get<com.talkeys.shared.data.payment.PaymentRepository>()
                             val result = paymentRepository.bookTicket(eventId, passType, friends, authToken)
                             
                             result.fold(
                                 onSuccess = { paymentData ->
-                                    Log.d("WebViewPayment", "Payment order created: ${paymentData.merchantOrderId}")
-                                    Log.d("WebViewPayment", "Token: ${paymentData.token}")
-                                    Log.d("WebViewPayment", "Pass ID: ${paymentData.passId}")
-                                    
-                                    // Decode and log token details for debugging
-                                    try {
-                                        val decodedToken = String(android.util.Base64.decode(paymentData.token, android.util.Base64.DEFAULT))
-                                        Log.d("WebViewPayment", "Decoded token: $decodedToken")
-                                    } catch (e: Exception) {
-                                        Log.e("WebViewPayment", "Failed to decode token: ${e.message}")
-                                    }
-                                    
+                                    Log.d("WebViewPayment", "Payment order created")
+
                                     kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
                                         isLoading = false
                                         
@@ -413,8 +388,6 @@ private fun PhonePePaymentSection(
                                             val encodedToken = java.net.URLEncoder.encode(paymentData.token, "UTF-8")
                                             "https://mercury-t2.phonepe.com/transact/pg?token=$encodedToken"
                                         }
-                                        
-                                        Log.d("WebViewPayment", "Payment URL: $paymentUrl")
                                         
                                         // Navigate to WebView payment screen
                                         // Use Uri.encode() which preserves the already-encoded characters

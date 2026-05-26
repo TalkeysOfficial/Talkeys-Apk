@@ -9,33 +9,19 @@ class IOSGoogleSignInProvider : GoogleSignInProvider {
     
     override suspend fun signIn(): GoogleSignInResult {
         return suspendCancellableCoroutine { continuation ->
-            // Call iOS native Google Sign-In through the iOS GoogleSignInManager
-            // This creates a callback mechanism between Kotlin and Swift
-            
-            // For now, we'll use the iOS GoogleSignInManager directly
-            // The iOS app should handle the actual Google Sign-In flow
-            
-            println("🔵 (iOS KMP) Delegating Google Sign-In to iOS native implementation")
-            
-            // This will be handled by the iOS GoogleSignInManager
-            // We need to create a bridge between the KMP and iOS
-            // For now, return success to test the flow - this should be replaced
-            // with actual iOS Google Sign-In integration
-            
-            // Create a callback function for iOS to call
+            // Delegated to iOS Swift code via IOSGoogleSignInBridge.
+            // The bridge is not yet wired in production — see Phase 5.
             IOSGoogleSignInBridge.performSignIn { result ->
                 continuation.resume(result)
             }
         }
     }
-    
+
     override suspend fun signOut() {
-        println("🔵 (iOS KMP) Delegating Google Sign-Out to iOS native implementation")
         IOSGoogleSignInBridge.performSignOut()
     }
-    
+
     override suspend fun isSignedIn(): Boolean {
-        println("🔵 (iOS KMP) Checking Google Sign-In status through iOS native")
         return IOSGoogleSignInBridge.isSignedIn()
     }
 }
@@ -62,9 +48,8 @@ object IOSGoogleSignInBridge {
     }
     
     fun performSignOut() {
-        // This should call the iOS GoogleSignInManager.signOut()
-        // For now, just log that sign-out was requested
-        println("✅ iOS Google Sign-Out requested")
+        // This should call the iOS GoogleSignInManager.signOut().
+        // No-op placeholder until Phase 5 wires the Swift side.
     }
     
     fun isSignedIn(): Boolean {
@@ -98,4 +83,4 @@ object IOSGoogleSignInBridge {
     }
 }
 
-actual fun createGoogleSignInProvider(): GoogleSignInProvider = IOSGoogleSignInProvider()
+// Phase 0: actual factory removed. Construct IOSGoogleSignInProvider() directly.
