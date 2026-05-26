@@ -1,0 +1,61 @@
+name: Platform Builds
+
+on:
+  pull_request:
+  push:
+    branches:
+      - master
+      - "kmp/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: platform-builds-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  android:
+    name: Android Debug Build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Build Android app
+        run: ./gradlew --no-daemon :app:assembleDebug
+
+  ios-framework:
+    name: iOS Shared Framework Build
+    runs-on: macos-15
+    timeout-minutes: 30
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v6
+
+      - name: Set up Java
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Link iOS simulator framework
+        run: ./gradlew --no-daemon :shared:linkDebugFrameworkIosSimulatorArm64
