@@ -10,13 +10,17 @@
 		1057C679CC2D155ECDAA02C5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2BF670E3F92C19248CF02E5B /* Assets.xcassets */; };
 		1500BD07E9777882F6ABF288 /* TalkeysApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 31B375CD24C65800936010E6 /* TalkeysApp.swift */; };
 		3BACAE7241519AD2A8F447ED /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BDFC82FDA0C05382B5A02B26 /* ContentView.swift */; };
+		B0CBE8FC3B1A1E40FBEB5342 /* CounterObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA0C27661D942CC823BED3A /* CounterObserver.swift */; };
+		D7526D2D6F68476412657CC2 /* IosViewModelStoreOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 329FD379425F47BB19F212C5 /* IosViewModelStoreOwner.swift */; };
 		EBAC84A54B3EF4A3BEFC1301 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D0D3CAE57C10545CC9781337 /* Foundation.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
 		2BF670E3F92C19248CF02E5B /* Assets.xcassets */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		31B375CD24C65800936010E6 /* TalkeysApp.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = TalkeysApp.swift; sourceTree = "<group>"; };
+		329FD379425F47BB19F212C5 /* IosViewModelStoreOwner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IosViewModelStoreOwner.swift; sourceTree = "<group>"; };
 		94E8D4BBF346F9EA3727A097 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		9FA0C27661D942CC823BED3A /* CounterObserver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CounterObserver.swift; sourceTree = "<group>"; };
 		BDFC82FDA0C05382B5A02B26 /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D0D3CAE57C10545CC9781337 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
@@ -55,6 +59,8 @@
 				31B375CD24C65800936010E6 /* TalkeysApp.swift */,
 				BDFC82FDA0C05382B5A02B26 /* ContentView.swift */,
 				2BF670E3F92C19248CF02E5B /* Assets.xcassets */,
+				329FD379425F47BB19F212C5 /* IosViewModelStoreOwner.swift */,
+				9FA0C27661D942CC823BED3A /* CounterObserver.swift */,
 			);
 			name = iosApp;
 			path = iosApp;
@@ -167,6 +173,8 @@
 			files = (
 				1500BD07E9777882F6ABF288 /* TalkeysApp.swift in Sources */,
 				3BACAE7241519AD2A8F447ED /* ContentView.swift in Sources */,
+				D7526D2D6F68476412657CC2 /* IosViewModelStoreOwner.swift in Sources */,
+				B0CBE8FC3B1A1E40FBEB5342 /* CounterObserver.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

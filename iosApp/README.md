@@ -25,6 +25,13 @@ The initial screen displays a greeting string returned from Kotlin `commonMain` 
 
 This builds both the Android debug APK and the iOS simulator app in sequence.
 
+## Phase 3 additions
+
+- A demo shared AndroidX `CounterViewModel` (in `shared/src/commonMain`) exposes a `StateFlow<Int>`.
+- The iOS app observes this `StateFlow` reactively through SKIE / Swift `AsyncSequence` (`for await`).
+- An `IosViewModelStoreOwner` provides AndroidX ViewModel lifecycle management on iOS.
+- This remains infrastructure proof only, not a migrated product feature. See `INTEROP_DECISION.md` for the design rationale.
+
 ## What is intentionally deferred
 
 The following are **not** included in this smoke-test app and will be added in later phases:
