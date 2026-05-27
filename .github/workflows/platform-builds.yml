@@ -38,8 +38,8 @@ jobs:
       - name: Build Android app
         run: ./gradlew --no-daemon :app:assembleDebug
 
-  ios-framework:
-    name: iOS Shared Framework Build
+  ios-app:
+    name: iOS App Build
     runs-on: macos-15
     timeout-minutes: 30
     steps:
@@ -57,5 +57,11 @@ jobs:
         with:
           cache-provider: basic
 
-      - name: Link iOS simulator framework
-        run: ./gradlew --no-daemon :shared:linkDebugFrameworkIosSimulatorArm64
+      - name: Build iOS app (includes shared framework)
+        run: |
+          xcodebuild \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -destination 'generic/platform=iOS Simulator' \
+            -configuration Debug \
+            build
