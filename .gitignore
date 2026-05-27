@@ -13,3 +13,7 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Xcode local user state
+**/xcuserdata/
+*.xcuserstate
