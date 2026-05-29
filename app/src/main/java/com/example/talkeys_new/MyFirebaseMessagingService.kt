@@ -67,28 +67,8 @@ class MyFirebaseMessagingService : FirebaseMessagingService() {
         // for the current user
         Log.d(TAG, "TODO: send FCM token to backend (not yet implemented)")
 
-        // Example of what this would look like with a real API:
-        /*
-        val apiService = RetrofitClient.getApiService()
-        apiService.updateFCMToken(
-            userId = getCurrentUserId(),
-            token = token,
-            deviceInfo = getDeviceInfo()
-        ).enqueue(object : Callback<ApiResponse> {
-            override fun onResponse(call: Call<ApiResponse>, response: Response<ApiResponse>) {
-                if (response.isSuccessful) {
-                    Log.d(TAG, "✅ Token successfully sent to server")
-                } else {
-                    Log.e(TAG, "❌ Failed to send token to server: ${response.code()}")
-                }
-            }
-            
-            override fun onFailure(call: Call<ApiResponse>, t: Throwable) {
-                Log.e(TAG, "🌐 Network error sending token", t)
-            }
-        })
-        */
-        
+        // Add this through shared Ktor once the backend exposes an FCM-token
+        // registration endpoint.
     }
     
     private fun storeTokenMetadata(token: String, timestamp: String) {

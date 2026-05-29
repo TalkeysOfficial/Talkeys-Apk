@@ -66,15 +66,10 @@ dependencies {
 
     //google sign in dependencies
     implementation("com.google.android.gms:play-services-auth:20.7.0") // for Google Sign-In
-    implementation("com.squareup.retrofit2:retrofit:2.9.0")
-    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
     implementation("androidx.datastore:datastore-preferences:1.0.0")
 
     //coil dependency
     implementation("io.coil-kt:coil-compose:2.5.0")
-
-    //logging dependency
-    implementation ("com.squareup.okhttp3:logging-interceptor:4.12.0")
 
     //icon dependencies
     implementation("androidx.compose.material:material-icons-extended:1.6.1")

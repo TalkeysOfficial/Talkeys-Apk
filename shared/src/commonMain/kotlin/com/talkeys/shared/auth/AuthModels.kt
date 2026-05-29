@@ -5,9 +5,9 @@ import kotlinx.serialization.Serializable
 /**
  * Backend response for `POST /verify`.
  *
- * Shape matches the live Android Retrofit contract:
- *   `UserResponse(accessToken: String, name: String)`
- * Citation: app/src/main/java/com/example/talkeys_new/dataModels/DataClasses.kt:3-4
+ * Shape matches the documented live auth contract:
+ *   `{ accessToken: String, name: String }`
+ * Citation: CURRENT_CLIENT_API_AUDIT.md §1
  *
  * No other fields are present in the observed backend response.
  */
