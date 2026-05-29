@@ -9,11 +9,11 @@ import kotlin.coroutines.resume
 
 class AndroidGoogleSignInProvider(
     private val context: Context,
-    private val clientId: String = "563385258779-75kq583ov98fk7h3dqp5em0639769a61.apps.googleusercontent.com"
+    private val clientId: String? = null
 ) : GoogleSignInProvider {
     
     private val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestIdToken(clientId)
+        .apply { clientId?.takeIf { it.isNotBlank() }?.let { requestIdToken(it) } }
         .requestEmail()
         .requestProfile()
         .build()
@@ -66,11 +66,11 @@ class AndroidGoogleSignInProvider(
 // For Activity-based sign-in (more common pattern)
 class ActivityGoogleSignInProvider(
     private val activity: Activity,
-    private val clientId: String = "563385258779-75kq583ov98fk7h3dqp5em0639769a61.apps.googleusercontent.com"
+    private val clientId: String? = null
 ) : GoogleSignInProvider {
     
     private val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-        .requestIdToken(clientId)
+        .apply { clientId?.takeIf { it.isNotBlank() }?.let { requestIdToken(it) } }
         .requestEmail()
         .requestProfile()
         .build()

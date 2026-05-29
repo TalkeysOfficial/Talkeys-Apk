@@ -64,10 +64,7 @@ fun LandingPage(navController: NavController) {
     }
 
     val googleAuthClient = remember {
-        GoogleAuthClient(
-            context = context,
-            clientId = "563385258779-75kq583ov98fk7h3dqp5em0639769a61.apps.googleusercontent.com"
-        )
+        GoogleAuthClient(context = context)
     }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
@@ -141,8 +138,14 @@ fun LandingPage(navController: NavController) {
             Button(
                 onClick = {
                     if (!isGoogleSignInLoading) {
+                        val signInIntent = googleAuthClient.getSignInIntentOrNull()
+                        if (signInIntent == null) {
+                            Toast.makeText(context, GoogleSignInConfig.missingConfigMessage(), Toast.LENGTH_LONG).show()
+                            return@Button
+                        }
+
                         isGoogleSignInLoading = true
-                        launcher.launch(googleAuthClient.getSignInIntent())
+                        launcher.launch(signInIntent)
                         
                         // Timeout mechanism - reset loading state after 30 seconds if no response
                         coroutineScope.launch {
