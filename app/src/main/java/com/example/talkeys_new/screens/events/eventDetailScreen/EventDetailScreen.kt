@@ -53,9 +53,10 @@ import com.example.talkeys_new.dataModels.EventResponse
 import com.example.talkeys_new.screens.common.BottomBar
 import com.example.talkeys_new.screens.common.Footer
 import com.example.talkeys_new.screens.common.HomeTopBar
-import com.example.talkeys_new.screens.events.EventViewModel
-import com.example.talkeys_new.screens.events.EventsRepository
-import com.example.talkeys_new.screens.events.provideEventApiService
+import com.example.talkeys_new.screens.events.sharedEventDetailViewModel
+import com.example.talkeys_new.screens.events.toAndroidEventResponse
+import com.example.talkeys_new.utils.LikedEventsManager
+import com.talkeys.shared.presentation.events.EventDetailUiState as SharedEventDetailUiState
 import java.text.SimpleDateFormat
 import java.util.*
 
@@ -102,14 +103,16 @@ fun EventDetailScreen(
     Log.d("EventDetailScreen", "Screen opened with eventId: $eventId")
 
     val context = LocalContext.current
-    val repository = remember { EventsRepository(provideEventApiService(context)) }
-    val viewModel = remember { EventViewModel(repository, context) }
+    val viewModel = sharedEventDetailViewModel()
+    val likedEventsManager = remember { LikedEventsManager.getInstance(context) }
 
     // State management
-    val eventState by viewModel.selectedEvent.collectAsState()
-    val isLoading by viewModel.eventLoading.collectAsState()
-    val errorMessage by viewModel.eventError.collectAsState()
-    val likedEventIds by viewModel.likedEventIds.collectAsState()
+    val eventState by viewModel.uiState.collectAsState()
+    val likedEventIds by likedEventsManager.likedEventIds.collectAsState()
+    val event = (eventState as? SharedEventDetailUiState.Content)
+        ?.event
+        ?.toAndroidEventResponse()
+    val errorMessage = (eventState as? SharedEventDetailUiState.Error)?.message
 
     // Initialize UI state with liked status from storage
     var uiState by remember { mutableStateOf(EventDetailUiState()) }
@@ -121,7 +124,7 @@ fun EventDetailScreen(
 
     // Fetch event details
     LaunchedEffect(eventId) {
-        viewModel.fetchEventById(eventId)
+        viewModel.loadEvent(eventId)
     }
 
     Scaffold(
@@ -137,25 +140,26 @@ fun EventDetailScreen(
 
             // Content based on state
             when {
-                isLoading -> {
+                eventState is SharedEventDetailUiState.Loading -> {
                     LoadingIndicator(modifier = Modifier.align(Alignment.Center))
                 }
 
                 errorMessage != null -> {
                     ErrorScreen(
                         message = errorMessage!!,
-                        onRetry = { viewModel.fetchEventById(eventId) },
+                        onRetry = { viewModel.retry() },
                         modifier = Modifier.align(Alignment.Center)
                     )
                 }
 
-                eventState != null -> {
+                event != null -> {
                     EventContent(
-                        event = eventState!!,
+                        event = event,
                         navController = navController,
                         uiState = uiState,
                         onUiStateChange = { uiState = it },
-                        viewModel = viewModel
+                        onLike = likedEventsManager::likeEvent,
+                        onUnlike = likedEventsManager::unlikeEvent
                     )
                 }
 
@@ -227,7 +231,8 @@ private fun EventContent(
     navController: NavController,
     uiState: EventDetailUiState,
     onUiStateChange: (EventDetailUiState) -> Unit,
-    viewModel: EventViewModel
+    onLike: (String) -> Unit,
+    onUnlike: (String) -> Unit
 ) {
     val tabItems = listOf("Details", "Dates & Deadlines", "Prizes", "Link to Community")
     val reorderedItems = remember(uiState.selectedItem) {
@@ -254,7 +259,8 @@ private fun EventContent(
                 event = event,
                 uiState = uiState,
                 onUiStateChange = onUiStateChange,
-                viewModel = viewModel
+                onLike = onLike,
+                onUnlike = onUnlike
             )
         }
 
@@ -600,7 +606,8 @@ private fun EventInfoBox(
     event: EventResponse,
     uiState: EventDetailUiState,
     onUiStateChange: (EventDetailUiState) -> Unit,
-    viewModel: EventViewModel,
+    onLike: (String) -> Unit,
+    onUnlike: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
@@ -628,7 +635,8 @@ private fun EventInfoBox(
                     context = context,
                     uiState = uiState,
                     onUiStateChange = onUiStateChange,
-                    viewModel = viewModel
+                    onLike = onLike,
+                    onUnlike = onUnlike
                 )
 
                 Spacer(modifier = Modifier.height(16.dp))
@@ -668,7 +676,8 @@ private fun CostAndActionsRow(
     context: Context,
     uiState: EventDetailUiState,
     onUiStateChange: (EventDetailUiState) -> Unit,
-    viewModel: EventViewModel
+    onLike: (String) -> Unit,
+    onUnlike: (String) -> Unit
 ) {
     Row(
         modifier = Modifier
@@ -705,7 +714,8 @@ private fun CostAndActionsRow(
             context = context,
             uiState = uiState,
             onUiStateChange = onUiStateChange,
-            viewModel = viewModel
+            onLike = onLike,
+            onUnlike = onUnlike
         )
     }
 }
@@ -716,7 +726,8 @@ private fun ActionButtons(
     context: Context,
     uiState: EventDetailUiState,
     onUiStateChange: (EventDetailUiState) -> Unit,
-    viewModel: EventViewModel
+    onLike: (String) -> Unit,
+    onUnlike: (String) -> Unit
 ) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -728,9 +739,9 @@ private fun ActionButtons(
             modifier = Modifier.clickable {
                 // Toggle like state and persist to storage
                 if (uiState.isLiked) {
-                    viewModel.unlikeEvent(event._id)
+                    onUnlike(event._id)
                 } else {
-                    viewModel.likeEvent(event._id)
+                    onLike(event._id)
                 }
                 // Update UI state (will be synced by LaunchedEffect)
                 onUiStateChange(uiState.copy(isLiked = !uiState.isLiked))

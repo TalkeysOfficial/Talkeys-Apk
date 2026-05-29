@@ -5,7 +5,17 @@ struct ContentView: View {
     @StateObject private var storeOwner = IosViewModelStoreOwner()
 
     var body: some View {
-        CounterDemoView(storeOwner: storeOwner)
+        TabView {
+            EventsListView(storeOwner: storeOwner)
+                .tabItem {
+                    Label("Events", systemImage: "calendar")
+                }
+
+            CounterDemoView(storeOwner: storeOwner)
+                .tabItem {
+                    Label("Counter", systemImage: "number")
+                }
+        }
     }
 }
 

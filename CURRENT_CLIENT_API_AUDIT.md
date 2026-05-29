@@ -25,28 +25,30 @@ Base hosts observed:
 
 ---
 
-## 2. Events (Android-only, Retrofit)
+## 2. Events (shared read path; legacy Android actions retained)
 
 Service: [app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt](app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt)
 Repository: [app/src/main/java/com/example/talkeys_new/screens/events/EventsRepository.kt](app/src/main/java/com/example/talkeys_new/screens/events/EventsRepository.kt)
 Auth: `AuthInterceptor` adds `Authorization: Bearer <jwt>` ([app/src/main/java/com/example/talkeys_new/screens/events/AuthInterceptor.kt:35-38](app/src/main/java/com/example/talkeys_new/screens/events/AuthInterceptor.kt:35)).
 
+Phase 4 migration note: event list and event detail reads are now implemented in `:shared` with Ktor, typed models, a shared repository, and shared ViewModels. Android `ExploreEventsScreen`, `HomeScreen`, and `EventDetailScreen` observe the shared ViewModels through a temporary DTO rendering adapter; iOS consumes the same ViewModels from SwiftUI. The Retrofit service and Android event classes remain in the tree for unmigrated mediator/action code and are not the active read source for these three screens.
+
 ### `GET getEvents`
 - File: [app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt:12-13](app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt:12)
 - Full path: `https://api.talkeys.xyz/getEvents`
 - Response: `Response<EventListResponse>` → `.data.events: List<EventResponse>`
-- Consumer: `EventsRepository.getAllEvents`, `EventsViewModel`, `ExploreEventsScreen`, `HomeScreen`.
+- Current shared consumer: `com.talkeys.shared.data.events.EventsApi`, `EventsRepository`, `EventsListViewModel`; rendered by Android `ExploreEventsScreen` / `HomeScreen` and iOS `EventsListView`.
 
 ### `GET getEventById/{id}`
 - File: [app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt:15-18](app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt:15)
 - Full path: `https://api.talkeys.xyz/getEventById/{id}`
 - Path params: `id: String`
 - Response: `Response<EventDetailResponse>`
-- Consumer: `EventsRepository.getEventById`, `EventDetailScreen`.
+- Current shared consumer: `com.talkeys.shared.data.events.EventsApi`, `EventsRepository`, `EventDetailViewModel`; rendered by Android `EventDetailScreen` and iOS `EventDetailView`.
 
 > No current client calls were found for likes, registration, event creation, or event submission. Those flows are local-only in this app - see [app/src/main/java/com/example/talkeys_new/screens/events/mediator/EventMediatorImpl.kt:209](app/src/main/java/com/example/talkeys_new/screens/events/mediator/EventMediatorImpl.kt:209) (`TODO: Implement API call`).
 
-Weakly typed fields: `EventResponse.ticketPrice` and `EventResponse.totalSeats` are typed as `Any`; they require typed contracts or explicit serializer handling before events can move to `commonMain`. `EventDetailScreen` also performs a manual field-by-field `EventResponse(...)` reconstruction from `EventDetail` ([EventsRepository.kt:107](app/src/main/java/com/example/talkeys_new/screens/events/EventsRepository.kt:107)) - duplicate models for the same entity.
+Weakly typed fields: the legacy Android DTOs still expose `EventResponse.ticketPrice` and `EventResponse.totalSeats` as `Any`. The shared read path handles the observed number-or-string input explicitly, exposing `ticketPrice: String` and `totalSeats: Int`; malformed values fail parsing rather than silently becoming zero. A temporary Android DTO rendering adapter remains until the surrounding Android-only event actions are migrated.
 
 ---
 

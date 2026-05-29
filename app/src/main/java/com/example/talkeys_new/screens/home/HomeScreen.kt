@@ -43,26 +43,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalConfiguration
-import androidx.lifecycle.viewmodel.compose.viewModel
 import android.util.Log
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
 import com.example.talkeys_new.screens.common.BottomBar
 import com.example.talkeys_new.screens.common.Footer
 import com.example.talkeys_new.screens.common.HomeTopBar
 import com.example.talkeys_new.screens.events.exploreEvents.EventCard
-import com.example.talkeys_new.screens.events.EventViewModel
-import com.example.talkeys_new.screens.events.EventsRepository
-import com.example.talkeys_new.screens.events.provideEventApiService
+import com.example.talkeys_new.screens.events.sharedEventsListViewModel
+import com.example.talkeys_new.screens.events.toAndroidEventResponse
 import com.example.talkeys_new.R
+import com.talkeys.shared.presentation.events.EventsListUiState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(navController: NavController) {
-    val context = LocalContext.current
-
     // Get screen dimensions for responsive design with better detection
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -72,21 +66,15 @@ fun HomeScreen(navController: NavController) {
     val isSmallScreen = screenWidth < 380.dp || screenHeight < 700.dp
     val isVerySmallScreen = screenWidth < 340.dp
 
-    // Initialize EventViewModel with proper factory
-    val eventViewModel: EventViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                val apiService = provideEventApiService(context)
-                val repository = EventsRepository(apiService)
-                return EventViewModel(repository, context) as T
-            }
-        }
-    )
-
-    // Collect events state
-    val events by eventViewModel.eventList.collectAsState()
-    val isLoading by eventViewModel.isLoading.collectAsState()
+    val eventViewModel = sharedEventsListViewModel()
+    val eventState by eventViewModel.uiState.collectAsState()
+    val events = remember(eventState) {
+        (eventState as? EventsListUiState.Content)
+            ?.events
+            ?.map { it.toAndroidEventResponse() }
+            .orEmpty()
+    }
+    val isLoading = eventState is EventsListUiState.Loading
 
     // Pull to refresh state
     var isRefreshing by remember { mutableStateOf(false) }
@@ -100,18 +88,13 @@ fun HomeScreen(navController: NavController) {
         label = "pullOffset"
     )
 
-    // Fetch events when screen loads
-    LaunchedEffect(Unit) {
-        eventViewModel.fetchAllEvents()
-    }
-
     // Handle refresh function
     val onRefresh = {
         Log.d("HomeScreen", "onRefresh called - isRefreshing: $isRefreshing, isLoading: $isLoading")
         if (!isRefreshing && !isLoading) {
             Log.d("HomeScreen", "Starting refresh with forceRefresh=true...")
             isRefreshing = true
-            eventViewModel.fetchAllEvents(forceRefresh = true)
+            eventViewModel.loadEvents(forceRefresh = true)
         } else {
             Log.d("HomeScreen", "Refresh blocked - already refreshing or loading")
         }
