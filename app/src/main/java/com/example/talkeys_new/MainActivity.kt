@@ -29,7 +29,7 @@ import com.google.android.gms.common.ConnectionResult
 import com.google.android.gms.common.GoogleApiAvailability
 import com.google.firebase.messaging.FirebaseMessaging
 import kotlinx.coroutines.flow.first
-import com.talkeys.shared.initKoin
+// Koin is initialized in TalkeysApplication.onCreate()
 
 class MainActivity : ComponentActivity() {
     
@@ -71,9 +71,6 @@ class MainActivity : ComponentActivity() {
         // Enable edge-to-edge display
         WindowCompat.setDecorFitsSystemWindows(window, false)
         
-        // Initialize KMP shared module
-        initKoin()
-
         // Check Google Play Services availability
         if (checkGooglePlayServices()) {
             // Log FCM initialization status

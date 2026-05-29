@@ -32,17 +32,20 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
-import com.example.talkeys_new.screens.authentication.AuthService.RetrofitClient
 import com.example.talkeys_new.screens.authentication.GoogleAuthClient
 import com.example.talkeys_new.screens.authentication.TokenManager
+import com.talkeys.shared.auth.AuthRepository
+import com.talkeys.shared.network.ApiResult
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import org.koin.compose.koinInject
 
 @Composable
 fun SignUpScreen(navController: NavController) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val tokenManager = remember { TokenManager(context) }
+    val authRepository: AuthRepository = koinInject()
 
     var isCheckingToken by remember { mutableStateOf(true) }
 
@@ -81,19 +84,17 @@ fun SignUpScreen(navController: NavController) {
         if (token != null) {
             coroutineScope.launch {
                 try {
-                    val response = RetrofitClient.instance.verifyToken("Bearer $token")
-                    if (response.isSuccessful) {
-                        val body = response.body()
-                        body?.accessToken?.let {
-                            tokenManager.saveToken(it)
+                    when (val authResult = authRepository.verifyGoogleToken(token)) {
+                        is ApiResult.Success -> {
+                            Toast.makeText(context, "Welcome ${authResult.data.name}", Toast.LENGTH_SHORT).show()
+                            navController.navigate("home") {
+                                popUpTo("signup") { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
-                        Toast.makeText(context, "Welcome ${body?.name}", Toast.LENGTH_SHORT).show()
-                        navController.navigate("home") {
-                            popUpTo("signup") { inclusive = true }
-                            launchSingleTop = true
+                        is ApiResult.Failure -> {
+                            Toast.makeText(context, "Signup failed", Toast.LENGTH_SHORT).show()
                         }
-                    } else {
-                        Toast.makeText(context, "Signup failed: ${response.code()}", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
                     Toast.makeText(context, "Network error: ${e.message}", Toast.LENGTH_SHORT).show()
@@ -331,4 +332,3 @@ fun CustomOutlinedTextField(
         }
     }
 }
-

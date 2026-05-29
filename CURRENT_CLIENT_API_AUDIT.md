@@ -21,7 +21,7 @@ Base hosts observed:
 - Body: none
 - Response: `Response<UserResponse>` — Gson-deserialised. `UserResponse` shape lives in [app/src/main/java/com/example/talkeys_new/dataModels/DataClasses.kt](app/src/main/java/com/example/talkeys_new/dataModels/DataClasses.kt). The login flow reads `body.name` and `body.accessToken` ([app/src/main/java/com/example/talkeys_new/screens/authentication/loginScreen/LoginScreenUI.kt:131-135](app/src/main/java/com/example/talkeys_new/screens/authentication/loginScreen/LoginScreenUI.kt:131)).
 - Consumer: `LoginScreenUI` — Google Sign-In flow.
-- Status: Android-only. **Not** in `:shared`. The `AuthRepository` in `:shared` references a different endpoint `/api/auth/google-signin` ([shared/src/commonMain/kotlin/com/talkeys/shared/auth/AuthRepository.kt:23](shared/src/commonMain/kotlin/com/talkeys/shared/auth/AuthRepository.kt:23)) that is **never invoked** from the running app.
+- Status: Phase 5 migrated Android Google verification calls to shared `AuthRepository`, which targets the same `POST /verify` endpoint ([AuthRepository.kt:59](shared/src/commonMain/kotlin/com/talkeys/shared/auth/AuthRepository.kt:59)). The legacy Retrofit `AuthService` remains in source for compatibility cleanup later, but `LoginScreenUI`, `LandingScreen`, and `SignUpScreen` no longer call `RetrofitClient.instance.verifyToken`.
 
 ---
 
@@ -115,6 +115,79 @@ Auth: optional `Authorization: Bearer <jwt>` per call.
 | Status check | `GET /api/payment/order-status/{orderId}` | `GET /api/payment/app-status-check/{merchantOrderId}` |
 
 These contracts must be reconciled with the backend before the payment migration is treated as production-ready.
+
+---
+
+## Auth Phase 5 — Backend Gate
+
+Verified against active Android client code and observed runtime behaviour.
+No backend API documentation exists outside the codebase itself.
+
+### 1. Google Verify Endpoint (CONFIRMED — active in Android)
+
+- **Endpoint:** `POST https://api.talkeys.xyz/verify`
+- **Source:** [AuthService.kt:17-20](app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:17)
+- **Request:**
+  - Method: `POST`
+  - Headers: `Authorization: Bearer <google_id_token>` ([AuthService.kt:19](app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:19))
+  - Body: none (no `@Body` parameter in Retrofit interface)
+- **Response:** `UserResponse` (Gson) — [DataClasses.kt:3-6](app/src/main/java/com/example/talkeys_new/dataModels/DataClasses.kt:3)
+  - `accessToken: String` — JWT saved by `TokenManager` ([LoginScreenUI.kt:119-121](app/src/main/java/com/example/talkeys_new/screens/authentication/loginScreen/LoginScreenUI.kt:119))
+  - `name: String` — displayed in welcome toast
+- **Consumers before Phase 5:** `LoginScreenUI`, `LandingScreen`, and `SignUpScreen` called `RetrofitClient.instance.verifyToken("Bearer $token")`.
+- **Consumers after Phase 5:** the same Android screens call shared `AuthRepository.verifyGoogleToken(idToken)`. `TokenManager` is now a compatibility wrapper over shared `TokenStorage`.
+- **Auth flow:** Google ID token obtained via `GoogleAuthClient` (legacy `com.google.android.gms.auth.api.signin`), passed as Bearer to backend, backend returns a short-lived JWT (`accessToken`).
+
+> **Phase 5 update:** The shared `AuthRepository` now targets `POST /verify` ([AuthRepository.kt:59](shared/src/commonMain/kotlin/com/talkeys/shared/auth/AuthRepository.kt:59)), matching the live Android Retrofit call. The old `/api/auth/google-signin` reference has been removed. Android Google verification is now routed through the shared repository; full platform Google UI modernization remains future work.
+
+### 2. Apple Sign-In — BLOCKED
+
+No Apple Sign-In endpoint was found in:
+- Android Retrofit interfaces (`AuthService`, `DashboardApiService`, `EventApiService`)
+- Shared Ktor services (`PaymentApiService`, `EventsApi`)
+- No `/api/auth/apple` or similar path anywhere in the codebase
+
+**Status: BLOCKED.** Cannot implement Apple Sign-In without a confirmed backend endpoint. iOS auth is limited to Google Sign-In via the same `POST /verify` endpoint.
+
+### 3. Refresh Tokens — NOT SUPPORTED
+
+No refresh token endpoint found:
+- No `POST /refresh`, `/api/auth/refresh`, or `/token/refresh` in any Retrofit or Ktor service
+- `UserResponse` contains only `accessToken` — no `refreshToken` field ([DataClasses.kt:3-6](app/src/main/java/com/example/talkeys_new/dataModels/DataClasses.kt:3))
+- `TokenManager` applies a client-side 24-hour expiry and does not attempt server refresh ([TokenManager.kt:39](app/src/main/java/com/example/talkeys_new/screens/authentication/TokenManager.kt:39))
+- `AuthInterceptor` does not retry with a refresh token on 401 ([AuthInterceptor.kt](app/src/main/java/com/example/talkeys_new/screens/events/AuthInterceptor.kt))
+
+**Status: Short-lived-token-only / no refresh endpoint.** `TokenStorage` will store `accessToken` only.
+
+### 4. Account Deletion — BLOCKED
+
+No account deletion endpoint found:
+- No `DELETE /user`, `/api/account`, `/dashboard/account`, or similar in any service
+- `ProfileScreen` logout only clears local tokens and revokes Google access — no backend call ([ProfileScreen.kt:763-781](app/src/main/java/com/example/talkeys_new/screens/profile/ProfileScreen.kt:763))
+- Privacy policy text mentions data deletion but no client-side delete flow exists ([PrivacyPolicy.kt](app/src/main/java/com/example/talkeys_new/screens/common/PrivacyPolicy.kt))
+
+**Status: BLOCKED.** Cannot implement account deletion without a backend endpoint.
+
+### 5. Backend Logout / Token Revocation — NOT SUPPORTED
+
+No backend logout or token revocation endpoint found. Logout is local-only:
+1. `TokenManager.clearToken()` — removes JWT from EncryptedSharedPreferences
+2. `GoogleSignInManager.clearUserProfile()` — clears DataStore
+3. `GoogleAuthClient.revokeAccess()` / `.signOut()` — revokes Google SDK access locally
+
+**Status:** Shared logout will clear local tokens only.
+
+### Phase 5 Implementation Scope (based on gate)
+
+| Feature | Status | Action |
+|---|---|---|
+| Google Sign-In → `POST /verify` → save `accessToken` | ✅ CONFIRMED | Implement in shared `AuthRepository` |
+| SecureStorage (Android: EncryptedSharedPrefs, iOS: Keychain) | ✅ DOABLE | New shared abstraction |
+| TokenStorage via SecureStorage | ✅ DOABLE | Replace insecure DataStore/UserDefaults impls |
+| Apple Sign-In | ❌ BLOCKED | No backend endpoint |
+| Refresh token flow | ❌ NOT SUPPORTED | No backend endpoint |
+| Account deletion | ❌ BLOCKED | No backend endpoint |
+| Backend logout/revoke | ❌ NOT SUPPORTED | No backend endpoint |
 
 ---
 
