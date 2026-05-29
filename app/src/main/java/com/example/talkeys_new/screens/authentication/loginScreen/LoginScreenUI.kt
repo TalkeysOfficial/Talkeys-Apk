@@ -24,6 +24,7 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
 import com.example.talkeys_new.screens.authentication.GoogleAuthClient
+import com.example.talkeys_new.screens.authentication.GoogleSignInConfig
 import com.example.talkeys_new.screens.authentication.TokenManager
 import com.example.talkeys_new.screens.authentication.GoogleSignInManager
 import com.example.talkeys_new.screens.authentication.UserProfile
@@ -72,10 +73,7 @@ fun LoginScreen(navController: NavController) {
     }
 
     val googleAuthClient = remember {
-        GoogleAuthClient(
-            context = context,
-            clientId = "563385258779-75kq583ov98fk7h3dqp5em0639769a61.apps.googleusercontent.com"
-        )
+        GoogleAuthClient(context = context)
     }
     
     val googleSignInManager = remember { GoogleSignInManager(context) }
@@ -224,7 +222,13 @@ fun LoginScreen(navController: NavController) {
 
             Button(
                 onClick = {
-                    launcher.launch(googleAuthClient.getSignInIntent())
+                    val signInIntent = googleAuthClient.getSignInIntentOrNull()
+                    if (signInIntent == null) {
+                        Toast.makeText(context, GoogleSignInConfig.missingConfigMessage(), Toast.LENGTH_LONG).show()
+                        return@Button
+                    }
+
+                    launcher.launch(signInIntent)
                 },
                 modifier = Modifier
                     .fillMaxWidth()

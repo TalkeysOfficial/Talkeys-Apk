@@ -39,14 +39,12 @@ import coil.compose.AsyncImage
 import androidx.compose.ui.platform.LocalConfiguration
 import coil.request.ImageRequest
 import com.example.talkeys_new.R
-import com.example.talkeys_new.api.UserProfileResponse
 import com.example.talkeys_new.screens.authentication.GoogleSignInManager
 import com.example.talkeys_new.screens.authentication.UserProfile
-import com.example.talkeys_new.avatar.AvatarManager
 import com.example.talkeys_new.avatar.AvatarImageWithFallback
 import com.example.talkeys_new.avatar.ProfileAvatarSection
-import com.example.talkeys_new.screens.dashboard.DashboardViewModel
-import com.example.talkeys_new.utils.ViewModelFactory
+import com.example.talkeys_new.screens.dashboard.sharedProfileViewModel
+import com.talkeys.shared.presentation.dashboard.ProfileUiState
 import kotlinx.coroutines.launch
 import android.util.Log
 import com.example.talkeys_new.screens.authentication.TokenManager
@@ -57,6 +55,7 @@ fun ProfileScreen(navController: NavController) {
     val context = LocalContext.current
     val tokenManager = remember { TokenManager(context) }
     val googleSignInManager = remember { GoogleSignInManager(context) }
+    val profileViewModel = sharedProfileViewModel()
     val scope = rememberCoroutineScope()
     val clipboardManager = LocalClipboardManager.current
 
@@ -70,9 +69,26 @@ fun ProfileScreen(navController: NavController) {
     val isVerySmallScreen = screenWidth < 340.dp
 
     // User profile state with proper error handling
-    val userProfile by googleSignInManager.userProfile.collectAsState(initial = UserProfile())
+    val localGoogleProfile by googleSignInManager.userProfile.collectAsState(initial = UserProfile())
+    val sharedProfileState by profileViewModel.uiState.collectAsState()
+    val userProfile = remember(sharedProfileState, localGoogleProfile) {
+        val content = sharedProfileState as? ProfileUiState.Content
+        content?.profile?.let { profile ->
+            UserProfile(
+                id = profile.id,
+                name = profile.displayName ?: profile.name,
+                email = profile.email,
+                profileImageUrl = profile.avatarUrl,
+                givenName = profile.displayName ?: profile.name,
+                familyName = ""
+            )
+        } ?: localGoogleProfile
+    }
     var mutualCommunities by remember { mutableStateOf(2) }
-    var userBio by remember { mutableStateOf("this is how your card will look like to others and this is your sample bio") }
+    val userBio = (sharedProfileState as? ProfileUiState.Content)
+        ?.profile
+        ?.about
+        ?: "this is how your card will look like to others and this is your sample bio"
     var isLoading by remember { mutableStateOf(true) }
     var error by remember { mutableStateOf<String?>(null) }
 
@@ -92,7 +108,7 @@ fun ProfileScreen(navController: NavController) {
                 val email = lastSignedInAccount.email
 
                 if (accountId != null && displayName != null && email != null) {
-                    if (userProfile.name.isEmpty()) {
+                    if (localGoogleProfile.name.isEmpty()) {
                         val profile = UserProfile(
                             id = accountId,
                             name = displayName,
@@ -115,6 +131,13 @@ fun ProfileScreen(navController: NavController) {
         } finally {
             isLoading = false
         }
+    }
+
+    LaunchedEffect(sharedProfileState, localGoogleProfile) {
+        isLoading = sharedProfileState is ProfileUiState.Loading && localGoogleProfile.name.isEmpty()
+        error = (sharedProfileState as? ProfileUiState.Error)
+            ?.message
+            ?.takeIf { localGoogleProfile.name.isEmpty() }
     }
 
     Scaffold(
@@ -765,8 +788,7 @@ private fun LogoutSection(
 
                         // Sign out from Google to force account picker on next login
                         val googleAuthClient = com.example.talkeys_new.screens.authentication.GoogleAuthClient(
-                            context = context,
-                            clientId = "563385258779-75kq583ov98fk7h3dqp5em0639769a61.apps.googleusercontent.com"
+                            context = context
                         )
 
                         // Revoke access to force account selection on next login

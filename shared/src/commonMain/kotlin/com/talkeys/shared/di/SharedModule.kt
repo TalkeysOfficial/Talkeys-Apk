@@ -2,6 +2,8 @@ package com.talkeys.shared.di
 
 import com.talkeys.shared.auth.AuthRepository
 import com.talkeys.shared.config.ProductionConfig
+import com.talkeys.shared.data.dashboard.DashboardApi
+import com.talkeys.shared.data.dashboard.DashboardRepository
 import com.talkeys.shared.data.events.EventsApi
 import com.talkeys.shared.data.events.EventsRepository
 import com.talkeys.shared.network.ApiClient
@@ -27,6 +29,10 @@ val sharedModule = module {
             baseUrl = ProductionConfig.API_BASE_URL,
         )
     }
+
+    // Phase 6 — Profile + dashboard verticals
+    single { DashboardApi(get<ApiClient>()) }
+    single { DashboardRepository(get(), get()) }
 }
 
 // Platform-specific modules should be provided by each platform
