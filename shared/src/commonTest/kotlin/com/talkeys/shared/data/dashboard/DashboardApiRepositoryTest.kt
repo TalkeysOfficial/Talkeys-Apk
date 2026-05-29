@@ -54,6 +54,40 @@ class DashboardApiRepositoryTest {
     }
 
     @Test
+    fun getUserEventsSendsBookmarkedTypeAndParsesEvents() = runTest {
+        var eventType: String? = null
+        val api = DashboardApi(client(MockEngine { request ->
+            eventType = request.url.parameters["type"]
+            respond(EVENTS_JSON, HttpStatusCode.OK, jsonHeaders)
+        }))
+
+        val result = api.getUserEvents(
+            token = "jwt-abc",
+            type = UserEventType.Bookmarked.wireValue
+        )
+
+        assertEquals("bookmarked", eventType)
+        assertIs<ApiResult.Success<UserEventsResponse>>(result)
+        assertEquals("event-1", result.data.events.first().id)
+    }
+
+    @Test
+    fun repositoryLoadsBookmarkedEventsThroughSharedContract() = runTest {
+        val repo = DashboardRepository(
+            DashboardApi(client(MockEngine { request ->
+                assertEquals("bookmarked", request.url.parameters["type"])
+                respond(EVENTS_JSON, HttpStatusCode.OK, jsonHeaders)
+            })),
+            FakeTokenStorage(token = "jwt-abc")
+        )
+
+        val result = repo.getUserEvents(UserEventType.Bookmarked)
+
+        assertIs<ApiResult.Success<List<com.talkeys.shared.data.events.EventSummary>>>(result)
+        assertEquals("event-1", result.data.first().id)
+    }
+
+    @Test
     fun repositoryReturnsAuthErrorWhenTokenMissing() = runTest {
         val repo = DashboardRepository(
             DashboardApi(client(MockEngine { respond(PROFILE_JSON, HttpStatusCode.OK, jsonHeaders) })),
@@ -142,6 +176,37 @@ class DashboardApiRepositoryTest {
               "pronouns": "he/him",
               "avatarUrl": "https://example.com/avatar.png",
               "likedEvents": ["e1", "e2"]
+            }
+        """
+
+        const val EVENTS_JSON = """
+            {
+              "events": [
+                {
+                  "_id": "event-1",
+                  "name": "Shared Logic Night",
+                  "category": "Tech",
+                  "ticketPrice": 100,
+                  "mode": "online",
+                  "location": null,
+                  "duration": "2h",
+                  "slots": 50,
+                  "visibility": "public",
+                  "startDate": "2026-06-01",
+                  "startTime": "18:00",
+                  "endRegistrationDate": "2026-05-31",
+                  "totalSeats": 100,
+                  "eventDescription": "KMP migration",
+                  "photographs": [],
+                  "prizes": null,
+                  "isTeamEvent": false,
+                  "isPaid": true,
+                  "isLive": true,
+                  "organizerName": "Talkeys",
+                  "organizerEmail": "team@talkeys.xyz",
+                  "organizerContact": null
+                }
+              ]
             }
         """
     }
