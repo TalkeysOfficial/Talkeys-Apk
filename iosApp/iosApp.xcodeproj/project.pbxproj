@@ -13,6 +13,10 @@
 		B0CBE8FC3B1A1E40FBEB5342 /* CounterObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FA0C27661D942CC823BED3A /* CounterObserver.swift */; };
 		D7526D2D6F68476412657CC2 /* IosViewModelStoreOwner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 329FD379425F47BB19F212C5 /* IosViewModelStoreOwner.swift */; };
 		EBAC84A54B3EF4A3BEFC1301 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = D0D3CAE57C10545CC9781337 /* Foundation.framework */; };
+		A1B2C3D401000001E4000001 /* EventsListObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D401000002E4000001 /* EventsListObserver.swift */; };
+		A1B2C3D401000001E4000002 /* EventDetailObserver.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D401000002E4000002 /* EventDetailObserver.swift */; };
+		A1B2C3D401000001E4000003 /* EventsListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D401000002E4000003 /* EventsListView.swift */; };
+		A1B2C3D401000001E4000004 /* EventDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D401000002E4000004 /* EventDetailView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -21,6 +25,10 @@
 		329FD379425F47BB19F212C5 /* IosViewModelStoreOwner.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = IosViewModelStoreOwner.swift; sourceTree = "<group>"; };
 		94E8D4BBF346F9EA3727A097 /* iosApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iosApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		9FA0C27661D942CC823BED3A /* CounterObserver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CounterObserver.swift; sourceTree = "<group>"; };
+		A1B2C3D401000002E4000001 /* EventsListObserver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EventsListObserver.swift; sourceTree = "<group>"; };
+		A1B2C3D401000002E4000002 /* EventDetailObserver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EventDetailObserver.swift; sourceTree = "<group>"; };
+		A1B2C3D401000002E4000003 /* EventsListView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EventsListView.swift; sourceTree = "<group>"; };
+		A1B2C3D401000002E4000004 /* EventDetailView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = EventDetailView.swift; sourceTree = "<group>"; };
 		BDFC82FDA0C05382B5A02B26 /* ContentView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		D0D3CAE57C10545CC9781337 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/iPhoneOS.platform/Developer/SDKs/iPhoneOS18.0.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 /* End PBXFileReference section */
@@ -61,6 +69,10 @@
 				2BF670E3F92C19248CF02E5B /* Assets.xcassets */,
 				329FD379425F47BB19F212C5 /* IosViewModelStoreOwner.swift */,
 				9FA0C27661D942CC823BED3A /* CounterObserver.swift */,
+				A1B2C3D401000002E4000001 /* EventsListObserver.swift */,
+				A1B2C3D401000002E4000002 /* EventDetailObserver.swift */,
+				A1B2C3D401000002E4000003 /* EventsListView.swift */,
+				A1B2C3D401000002E4000004 /* EventDetailView.swift */,
 			);
 			name = iosApp;
 			path = iosApp;
@@ -175,6 +187,10 @@
 				3BACAE7241519AD2A8F447ED /* ContentView.swift in Sources */,
 				D7526D2D6F68476412657CC2 /* IosViewModelStoreOwner.swift in Sources */,
 				B0CBE8FC3B1A1E40FBEB5342 /* CounterObserver.swift in Sources */,
+				A1B2C3D401000001E4000001 /* EventsListObserver.swift in Sources */,
+				A1B2C3D401000001E4000002 /* EventDetailObserver.swift in Sources */,
+				A1B2C3D401000001E4000003 /* EventsListView.swift in Sources */,
+				A1B2C3D401000001E4000004 /* EventDetailView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

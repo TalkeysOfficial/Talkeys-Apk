@@ -1,0 +1,39 @@
+package com.example.talkeys_new.screens.events
+
+import androidx.compose.runtime.Composable
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.talkeys.shared.data.events.EventsRepository
+import com.talkeys.shared.presentation.events.EventDetailViewModel
+import com.talkeys.shared.presentation.events.EventDetailViewModelFactory
+import com.talkeys.shared.presentation.events.EventsListViewModel
+import com.talkeys.shared.presentation.events.EventsListViewModelFactory
+import org.koin.compose.koinInject
+
+/**
+ * Composable helpers for obtaining shared KMP ViewModels on Android.
+ *
+ * Usage:
+ *   val listVm = sharedEventsListViewModel()
+ *   val detailVm = sharedEventDetailViewModel()
+ *
+ * These pull [EventsRepository] from the Koin graph (registered in
+ * [com.talkeys.shared.di.sharedModule]) and create the ViewModel via
+ * the shared KMP factory, so Android and iOS get identical behaviour.
+ *
+ * Existing Retrofit-backed [EventViewModel] is NOT removed or altered.
+ * Screens can migrate incrementally by switching to these helpers.
+ */
+
+@Composable
+fun sharedEventsListViewModel(
+    repository: EventsRepository = koinInject()
+): EventsListViewModel = viewModel(
+    factory = EventsListViewModelFactory(repository)
+)
+
+@Composable
+fun sharedEventDetailViewModel(
+    repository: EventsRepository = koinInject()
+): EventDetailViewModel = viewModel(
+    factory = EventDetailViewModelFactory(repository)
+)

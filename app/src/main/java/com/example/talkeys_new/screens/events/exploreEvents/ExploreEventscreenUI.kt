@@ -31,7 +31,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
@@ -40,20 +39,17 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import androidx.compose.ui.platform.LocalConfiguration
-import com.example.talkeys_new.screens.events.EventViewModel
-import com.example.talkeys_new.screens.events.provideEventApiService
-import com.example.talkeys_new.screens.events.EventsRepository
+import com.example.talkeys_new.screens.events.sharedEventsListViewModel
+import com.example.talkeys_new.screens.events.toAndroidEventResponse
 import com.example.talkeys_new.screens.common.HomeTopBar
 import com.example.talkeys_new.R
 import com.example.talkeys_new.dataModels.EventResponse
 import com.example.talkeys_new.screens.common.BottomBar
 import com.example.talkeys_new.screens.common.Footer
 import kotlinx.coroutines.delay
+import com.talkeys.shared.presentation.events.EventsListUiState
 
 /**
  * Screen for exploring events with filtering and categorization
@@ -61,8 +57,6 @@ import kotlinx.coroutines.delay
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExploreEventsScreen(navController: NavController) {
-    val context = LocalContext.current
-    
     // Get screen dimensions for responsive design
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
@@ -72,27 +66,15 @@ fun ExploreEventsScreen(navController: NavController) {
     val isSmallScreen = screenWidth < 380.dp || screenHeight < 700.dp
     val isVerySmallScreen = screenWidth < 340.dp
 
-    // Create ViewModel with proper error handling
-    val viewModel: EventViewModel = viewModel(
-        factory = object : ViewModelProvider.Factory {
-            @Suppress("UNCHECKED_CAST")
-            override fun <T : ViewModel> create(modelClass: Class<T>): T {
-                return try {
-                    val api = provideEventApiService(context)
-                    EventViewModel(EventsRepository(api), context) as T
-                } catch (e: Exception) {
-                    Log.e("ExploreEventsScreen", "Error creating ViewModel", e)
-                    throw e
-                }
-            }
-        }
-    )
-
-    // Collect state with proper error handling
-    val eventList by viewModel.eventList.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    val errorMessage by viewModel.errorMessage.collectAsState()
-    val showLiveEvents by viewModel.showLiveEvents.collectAsState()
+    val viewModel = sharedEventsListViewModel()
+    val state by viewModel.uiState.collectAsState()
+    val content = state as? EventsListUiState.Content
+    val eventList = remember(content?.events) {
+        content?.events?.map { it.toAndroidEventResponse() }.orEmpty()
+    }
+    val isLoading = state is EventsListUiState.Loading
+    val errorMessage = (state as? EventsListUiState.Error)?.message
+    val showLiveEvents = content?.showLiveOnly ?: true
 
     // Group events by category with null safety
     val groupedEvents = remember(eventList) {
@@ -101,18 +83,12 @@ fun ExploreEventsScreen(navController: NavController) {
         }.filterValues { it.isNotEmpty() } // Remove empty categories
     }
 
-    // Load data when screen starts with retry mechanism
-    LaunchedEffect(Unit) {
-        Log.d("ExploreEventsScreen", "Screen launched, fetching events...")
-        viewModel.fetchAllEvents()
-    }
-
     // Auto-refresh mechanism (optional - can be removed if not needed)
     LaunchedEffect(key1 = Unit) {
         while (true) {
             delay(300000) // 5 minutes
             if (!isLoading && errorMessage == null) {
-                viewModel.refreshEvents()
+                viewModel.loadEvents(forceRefresh = true)
             }
         }
     }
@@ -145,13 +121,13 @@ fun ExploreEventsScreen(navController: NavController) {
                 isLoading = isLoading,
                 errorMessage = errorMessage,
                 showLiveEvents = showLiveEvents,
-                onToggleFilter = { viewModel.toggleEventFilter() },
-                onRetry = { viewModel.fetchAllEvents() },
-                onRefresh = { viewModel.fetchAllEvents(forceRefresh = true) },
+                onToggleFilter = { viewModel.toggleFilter() },
+                onRetry = { viewModel.retry() },
+                onRefresh = { viewModel.loadEvents(forceRefresh = true) },
                 onEventClick = { event ->
                     handleEventClick(event, navController)
                 },
-                onClearError = { viewModel.clearErrors() },
+                onClearError = { viewModel.dismissError() },
                 navController = navController,
                 isSmallScreen = isSmallScreen,
                 isVerySmallScreen = isVerySmallScreen
