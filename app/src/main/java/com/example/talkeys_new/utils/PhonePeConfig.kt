@@ -1,24 +1,21 @@
 package com.example.talkeys_new.utils
 
+import com.talkeys.shared.config.ProductionConfig
+
 /**
- * PhonePe Configuration
- * 
- * SECURITY WARNING: 
- * - These are your REAL PhonePe credentials
- * - Keep this file secure and never commit to public repositories
- * - Consider using BuildConfig or encrypted storage for production
+ * PhonePe mobile configuration.
+ *
+ * Only public SDK identifiers belong here. Order creation, signing, and
+ * verification must stay on the backend.
  */
 object PhonePeConfig {
     
-    // PhonePe Business Dashboard Credentials
-    // SECURITY: CLIENT_SECRET must never be stored in the mobile binary.
-    // It belongs on the backend server only. The value previously committed here
-    // has been removed and MUST be rotated — see CURRENT_CLIENT_API_AUDIT.md.
+    // Public identifiers used by the mobile SDK.
     const val MERCHANT_ID = "M22ZDT307F584"
-    const val CLIENT_ID = "SU2504181253408025787154"
+    const val CLIENT_ID = ProductionConfig.PHONEPE_CLIENT_ID
     
     // Environment Configuration
-    const val IS_PRODUCTION = true // ⚠️ PRODUCTION MODE - REAL MONEY WILL BE CHARGED!
+    const val IS_PRODUCTION = ProductionConfig.IS_PHONEPE_PRODUCTION
     
     // API Endpoints (you'll need these for backend integration)
     const val SANDBOX_BASE_URL = "https://api-preprod.phonepe.com/apis/pg-sandbox"
@@ -40,7 +37,6 @@ object PhonePeConfig {
     }
     
     /**
-     * CLIENT_ID is used for SDK initialization (safe to embed in the app).
-     * CLIENT_SECRET belongs on the backend only — never in a mobile binary.
+     * CLIENT_ID is used for SDK initialization and is safe to embed in the app.
      */
 }
