@@ -18,10 +18,6 @@ object ProductionConfig {
     const val API_TIMEOUT_SECONDS = 30L
     const val API_RETRY_COUNT = 3
     
-    // PhonePe Configuration
-    const val PHONEPE_ENVIRONMENT = "PRODUCTION"
-    const val PHONEPE_CLIENT_ID = "SU2504181253408025787154"
-    
     // Payment Configuration
     const val DEFAULT_CURRENCY = "INR"
     const val PAYMENT_TIMEOUT_MINUTES = 15
@@ -46,13 +42,6 @@ object ProductionConfig {
     fun getApiBaseUrl(): String {
         // Always use production API - only PhonePe environment changes for testing
         return API_BASE_URL
-    }
-    
-    /**
-     * Get PhonePe environment string
-     */
-    fun getPhonePeEnvironment(): String {
-        return if (IS_PHONEPE_PRODUCTION) "PRODUCTION" else "SANDBOX"
     }
     
     /**

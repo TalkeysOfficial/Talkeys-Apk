@@ -71,7 +71,7 @@ The `:shared` module is Kotlin Multiplatform and currently includes:
 - Payment checkout state and PhonePe checkout URL preparation
 
 Android still contains platform UI and integrations such as Compose screens,
-Google Sign-In UI, PhonePe SDK/WebView handling, Firebase messaging, Android
+Google Sign-In UI, PhonePe WebView handling, Firebase messaging, Android
 navigation, and Android-specific sharing/image picking.
 
 ## Toolchain
