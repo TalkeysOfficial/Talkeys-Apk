@@ -27,10 +27,20 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
 import com.example.talkeys_new.screens.common.HomeTopBar
+import com.talkeys.shared.presentation.events.EventCreationStep
+import com.talkeys.shared.presentation.events.EventCreationViewModel
+import com.talkeys.shared.presentation.events.EventReviewDraft
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateEvent6Screen(navController: NavController) {
+fun CreateEvent6Screen(
+    navController: NavController,
+    eventCreationViewModel: EventCreationViewModel
+) {
+    LaunchedEffect(eventCreationViewModel) {
+        eventCreationViewModel.moveToStep(EventCreationStep.Review)
+    }
+
     // State variables for checkboxes
     var isInfoAccurate by remember { mutableStateOf(false) }
     var agreeToTerms by remember { mutableStateOf(false) }
@@ -240,8 +250,16 @@ fun CreateEvent6Screen(navController: NavController) {
                         // Submit Button
                         Button(
                             onClick = {
-                                if (canSubmit) {
+                                eventCreationViewModel.updateReview(
+                                    EventReviewDraft(
+                                        isInfoAccurate = isInfoAccurate,
+                                        agreeToTerms = agreeToTerms
+                                    )
+                                )
+                                if (eventCreationViewModel.requestSubmit()) {
                                     // TODO: Handle event submission logic here (API call, etc.)
+                                    eventCreationViewModel.markSubmissionHandled()
+                                    eventCreationViewModel.resetDraft()
 
                                     // Navigate to registration success screen
                                     navController.navigate("registration_success") {
@@ -275,6 +293,7 @@ fun CreateEvent6Screen(navController: NavController) {
                         // Previous Button
                         OutlinedButton(
                             onClick = {
+                                eventCreationViewModel.goPrevious()
                                 navController.navigate("create_event_5")
                             },
                             colors = ButtonDefaults.outlinedButtonColors(

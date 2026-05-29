@@ -28,11 +28,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.screens.common.HomeTopBar
+import com.talkeys.shared.presentation.events.EventCreationStep
+import com.talkeys.shared.presentation.events.EventCreationViewModel
+import com.talkeys.shared.presentation.events.EventDetailsDraft
 import java.util.regex.Pattern
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateEvent2Screen(navController: NavController) {
+fun CreateEvent2Screen(
+    navController: NavController,
+    eventCreationViewModel: EventCreationViewModel
+) {
+    LaunchedEffect(eventCreationViewModel) {
+        eventCreationViewModel.moveToStep(EventCreationStep.Details)
+    }
+
     // State variables for form fields
     var eventName by remember { mutableStateOf("") }
     var eventType by remember { mutableStateOf("") }
@@ -518,6 +528,7 @@ fun CreateEvent2Screen(navController: NavController) {
                             // Previous Button
                             OutlinedButton(
                                 onClick = {
+                                    eventCreationViewModel.goPrevious()
                                     navController.navigate("create_event_1")
                                 },
                                 colors = ButtonDefaults.outlinedButtonColors(
@@ -552,8 +563,24 @@ fun CreateEvent2Screen(navController: NavController) {
                             // Next Button
                             Button(
                                 onClick = {
-                                    if (validateFields()) {
+                                    eventCreationViewModel.updateDetails(
+                                        EventDetailsDraft(
+                                            eventName = eventName,
+                                            eventType = eventType,
+                                            eventCategory = eventCategory,
+                                            eventDescription = eventDescription,
+                                            eventBanner = selectedFileUri.toSharedImage(context, fileName)
+                                        )
+                                    )
+                                    if (eventCreationViewModel.goNext()) {
                                         navController.navigate("create_event_3")
+                                    } else {
+                                        val errors = eventCreationViewModel.uiState.value.validationErrors
+                                        eventNameError = errors["eventName"].orEmpty()
+                                        eventTypeError = errors["eventType"].orEmpty()
+                                        eventCategoryError = errors["eventCategory"].orEmpty()
+                                        eventDescriptionError = errors["eventDescription"].orEmpty()
+                                        fileError = errors["eventBanner"].orEmpty()
                                     }
                                 },
                                 enabled = true, // Always enabled, validation happens on click

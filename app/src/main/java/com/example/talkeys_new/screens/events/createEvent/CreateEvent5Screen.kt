@@ -1,5 +1,8 @@
 package com.example.talkeys_new.screens.events.createEvent
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -25,10 +28,20 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
 import com.example.talkeys_new.screens.common.HomeTopBar
+import com.talkeys.shared.presentation.events.EventAudienceDraft
+import com.talkeys.shared.presentation.events.EventCreationStep
+import com.talkeys.shared.presentation.events.EventCreationViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateEvent5Screen(navController: NavController) {
+fun CreateEvent5Screen(
+    navController: NavController,
+    eventCreationViewModel: EventCreationViewModel
+) {
+    LaunchedEffect(eventCreationViewModel) {
+        eventCreationViewModel.moveToStep(EventCreationStep.Audience)
+    }
+
     // State variables for form fields
     var communityChat by remember { mutableStateOf("") }
     var communityChatDropdownExpanded by remember { mutableStateOf(false) }
@@ -36,8 +49,20 @@ fun CreateEvent5Screen(navController: NavController) {
     var sponsorsDropdownExpanded by remember { mutableStateOf(false) }
     var audienceType by remember { mutableStateOf("") }
     var selectedFileName by remember { mutableStateOf("") }
+    var selectedFileUri by remember { mutableStateOf<Uri?>(null) }
 
     val context = LocalContext.current
+    val filePickerLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri ->
+        selectedFileUri = uri
+        selectedFileName = uri?.lastPathSegment
+            ?.split("/")
+            ?.lastOrNull()
+            ?.split("?")
+            ?.firstOrNull()
+            ?: ""
+    }
 
     // Dropdown options
     val communityChatOptions = listOf("Yes", "No")
@@ -317,8 +342,7 @@ fun CreateEvent5Screen(navController: NavController) {
                         // File Upload Button
                         Button(
                             onClick = {
-                                // TODO: Implement file picker
-                                selectedFileName = "sample_deck.pdf" // Placeholder
+                                filePickerLauncher.launch("*/*")
                             },
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = Color(0xFF7A2EC0),
@@ -374,6 +398,7 @@ fun CreateEvent5Screen(navController: NavController) {
                             // Previous Button
                             OutlinedButton(
                                 onClick = {
+                                    eventCreationViewModel.goPrevious()
                                     navController.navigate("create_event_4")
                                 },
                                 colors = ButtonDefaults.outlinedButtonColors(
@@ -409,7 +434,15 @@ fun CreateEvent5Screen(navController: NavController) {
                             // Next Button
                             Button(
                                 onClick = {
-                                    if (areRequiredFieldsFilled) {
+                                    eventCreationViewModel.updateAudience(
+                                        EventAudienceDraft(
+                                            communityChat = communityChat,
+                                            sponsors = sponsors,
+                                            audienceType = audienceType,
+                                            sponsorDeck = selectedFileUri.toSharedImage(context, selectedFileName)
+                                        )
+                                    )
+                                    if (eventCreationViewModel.goNext()) {
                                         navController.navigate("create_event_6")
                                     }
                                 },

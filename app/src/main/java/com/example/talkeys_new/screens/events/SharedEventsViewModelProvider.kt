@@ -3,6 +3,10 @@ package com.example.talkeys_new.screens.events
 import androidx.compose.runtime.Composable
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.talkeys.shared.data.events.EventsRepository
+import com.talkeys.shared.presentation.events.EventCoordinator
+import com.talkeys.shared.presentation.events.EventCoordinatorFactory
+import com.talkeys.shared.presentation.events.EventCreationViewModel
+import com.talkeys.shared.presentation.events.EventCreationViewModelFactory
 import com.talkeys.shared.presentation.events.EventDetailViewModel
 import com.talkeys.shared.presentation.events.EventDetailViewModelFactory
 import com.talkeys.shared.presentation.events.EventsListViewModel
@@ -36,4 +40,16 @@ fun sharedEventDetailViewModel(
     repository: EventsRepository = koinInject()
 ): EventDetailViewModel = viewModel(
     factory = EventDetailViewModelFactory(repository)
+)
+
+@Composable
+fun sharedEventCoordinator(
+    repository: EventsRepository = koinInject()
+): EventCoordinator = viewModel(
+    factory = EventCoordinatorFactory(repository)
+)
+
+@Composable
+fun sharedEventCreationViewModel(): EventCreationViewModel = viewModel(
+    factory = EventCreationViewModelFactory()
 )

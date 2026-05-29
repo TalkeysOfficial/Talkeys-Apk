@@ -25,10 +25,20 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
 import com.example.talkeys_new.screens.common.HomeTopBar
+import com.talkeys.shared.presentation.events.EventCreationStep
+import com.talkeys.shared.presentation.events.EventCreationViewModel
+import com.talkeys.shared.presentation.events.EventPricingDraft
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateEvent4Screen(navController: NavController) {
+fun CreateEvent4Screen(
+    navController: NavController,
+    eventCreationViewModel: EventCreationViewModel
+) {
+    LaunchedEffect(eventCreationViewModel) {
+        eventCreationViewModel.moveToStep(EventCreationStep.Pricing)
+    }
+
     // State variables for form fields
     var eventType by remember { mutableStateOf("") }
     var eventTypeDropdownExpanded by remember { mutableStateOf(false) }
@@ -618,6 +628,7 @@ fun CreateEvent4Screen(navController: NavController) {
                             // Previous Button
                             OutlinedButton(
                                 onClick = {
+                                    eventCreationViewModel.goPrevious()
                                     navController.navigate("create_event_3")
                                 },
                                 colors = ButtonDefaults.outlinedButtonColors(
@@ -653,8 +664,22 @@ fun CreateEvent4Screen(navController: NavController) {
                             // Next Button
                             Button(
                                 onClick = {
-                                    if (validateForm() && areAllFieldsFilled) {
+                                    eventCreationViewModel.updatePricing(
+                                        EventPricingDraft(
+                                            eventType = eventType,
+                                            ticketPrice = ticketPrice,
+                                            discounts = discounts,
+                                            discountPercentage = discountPercentage,
+                                            qrCheckIn = qrCheckIn,
+                                            refundPolicy = refundPolicy
+                                        )
+                                    )
+                                    if (eventCreationViewModel.goNext()) {
                                         navController.navigate("create_event_5")
+                                    } else {
+                                        val errors = eventCreationViewModel.uiState.value.validationErrors
+                                        ticketPriceError = errors["ticketPrice"].orEmpty()
+                                        discountPercentageError = errors["discountPercentage"].orEmpty()
                                     }
                                 },
                                 enabled = areAllFieldsFilled,

@@ -25,11 +25,21 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.screens.common.HomeTopBar
+import com.talkeys.shared.presentation.events.EventCreationStep
+import com.talkeys.shared.presentation.events.EventCreationViewModel
+import com.talkeys.shared.presentation.events.OrganizerInfoDraft
 import java.util.regex.Pattern
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateEvent1Screen(navController: NavController) {
+fun CreateEvent1Screen(
+    navController: NavController,
+    eventCreationViewModel: EventCreationViewModel
+) {
+    LaunchedEffect(eventCreationViewModel) {
+        eventCreationViewModel.moveToStep(EventCreationStep.OrganizerInfo)
+    }
+
     // State variables for form fields
     var organizerName by remember { mutableStateOf("") }
     var emailAddress by remember { mutableStateOf("") }
@@ -604,8 +614,28 @@ fun CreateEvent1Screen(navController: NavController) {
                         // Next Button
                         Button(
                             onClick = {
-                                if (validateFields()) {
+                                eventCreationViewModel.updateOrganizerInfo(
+                                    OrganizerInfoDraft(
+                                        organizerName = organizerName,
+                                        emailAddress = emailAddress,
+                                        contactNumber = contactNumber,
+                                        organizationName = organizationName,
+                                        cityState = cityState,
+                                        socialMediaLinks = socialMediaLinks,
+                                        organizerDocument = selectedFileUri.toSharedImage(context, fileName)
+                                    )
+                                )
+                                if (eventCreationViewModel.goNext()) {
                                     navController.navigate("create_event_2")
+                                } else {
+                                    val errors = eventCreationViewModel.uiState.value.validationErrors
+                                    organizerNameError = errors["organizerName"].orEmpty()
+                                    emailError = errors["emailAddress"].orEmpty()
+                                    contactNumberError = errors["contactNumber"].orEmpty()
+                                    organizationNameError = errors["organizationName"].orEmpty()
+                                    cityStateError = errors["cityState"].orEmpty()
+                                    socialMediaError = errors["socialMediaLinks"].orEmpty()
+                                    fileError = errors["organizerDocument"].orEmpty()
                                 }
                             },
                             enabled = true, // Always enabled, validation happens on click

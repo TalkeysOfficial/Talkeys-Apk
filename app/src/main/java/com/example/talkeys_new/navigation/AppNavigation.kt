@@ -27,6 +27,7 @@ import com.example.talkeys_new.screens.events.createEvent.CreateEvent4Screen
 import com.example.talkeys_new.screens.events.createEvent.CreateEvent5Screen
 import com.example.talkeys_new.screens.events.createEvent.CreateEvent6Screen
 import com.example.talkeys_new.screens.events.RegistrationSuccessScreen
+import com.example.talkeys_new.screens.events.sharedEventCreationViewModel
 import com.example.talkeysapk.screensUI.home.AboutUsScreen
 import com.example.talkeysapk.screensUI.home.ContactUsScreen
 import com.example.talkeysapk.screensUI.home.TermsAndConditionsScreen
@@ -35,8 +36,9 @@ import com.example.talkeysapk.screensUI.home.privacyPolicy
 @Composable
 fun AppNavigation(modifier: Modifier) {
     val navController = rememberNavController()
+    val eventCreationViewModel = sharedEventCreationViewModel()
 
-    NavHost(navController = navController, startDestination = "landingpage") {
+    NavHost(navController = navController, startDestination = "home") {
         //composable("splash") { SplashScreen(navController) }
         composable("landingpage") { LandingPage(navController) }
         composable("signup") { SignUpScreen(navController) }
@@ -61,12 +63,12 @@ fun AppNavigation(modifier: Modifier) {
         composable("screen_not_found"){ScreenNotFound(navController)}
 
         // Create Event Flow
-        composable("create_event_1") { CreateEvent1Screen(navController) }
-        composable("create_event_2") { CreateEvent2Screen(navController) }
-        composable("create_event_3") { CreateEvent3Screen(navController) }
-        composable("create_event_4") { CreateEvent4Screen(navController) }
-        composable("create_event_5") { CreateEvent5Screen(navController) }
-        composable("create_event_6") { CreateEvent6Screen(navController) }
+        composable("create_event_1") { CreateEvent1Screen(navController, eventCreationViewModel) }
+        composable("create_event_2") { CreateEvent2Screen(navController, eventCreationViewModel) }
+        composable("create_event_3") { CreateEvent3Screen(navController, eventCreationViewModel) }
+        composable("create_event_4") { CreateEvent4Screen(navController, eventCreationViewModel) }
+        composable("create_event_5") { CreateEvent5Screen(navController, eventCreationViewModel) }
+        composable("create_event_6") { CreateEvent6Screen(navController, eventCreationViewModel) }
         composable("registration_success") { RegistrationSuccessScreen(navController) }
 
         // Event Detail Screen with eventId parameter

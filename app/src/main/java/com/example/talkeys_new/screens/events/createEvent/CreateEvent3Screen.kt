@@ -30,12 +30,22 @@ import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
 import com.example.talkeys_new.screens.common.HomeTopBar
+import com.talkeys.shared.presentation.events.EventCreationStep
+import com.talkeys.shared.presentation.events.EventCreationViewModel
+import com.talkeys.shared.presentation.events.EventScheduleDraft
 import java.text.SimpleDateFormat
 import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CreateEvent3Screen(navController: NavController) {
+fun CreateEvent3Screen(
+    navController: NavController,
+    eventCreationViewModel: EventCreationViewModel
+) {
+    LaunchedEffect(eventCreationViewModel) {
+        eventCreationViewModel.moveToStep(EventCreationStep.Schedule)
+    }
+
     // State variables for form fields
     var eventDates by remember { mutableStateOf("") }
     var startTime by remember { mutableStateOf("") }
@@ -680,6 +690,7 @@ fun CreateEvent3Screen(navController: NavController) {
                             // Previous Button
                             OutlinedButton(
                                 onClick = {
+                                    eventCreationViewModel.goPrevious()
                                     navController.navigate("create_event_2")
                                 },
                                 colors = ButtonDefaults.outlinedButtonColors(
@@ -715,8 +726,26 @@ fun CreateEvent3Screen(navController: NavController) {
                             // Next Button
                             Button(
                                 onClick = {
-                                    if (validateForm() && areAllFieldsFilled) {
+                                    eventCreationViewModel.updateSchedule(
+                                        EventScheduleDraft(
+                                            eventDates = eventDates,
+                                            startTime = startTime,
+                                            endTime = endTime,
+                                            registrationDeadline = registrationDeadline,
+                                            maxAttendees = maxAttendees,
+                                            platformUsed = platformUsed,
+                                            willBeRecorded = willBeRecorded
+                                        )
+                                    )
+                                    if (eventCreationViewModel.goNext()) {
                                         navController.navigate("create_event_4")
+                                    } else {
+                                        val errors = eventCreationViewModel.uiState.value.validationErrors
+                                        eventDateError = errors["eventDates"].orEmpty()
+                                        startTimeError = errors["startTime"].orEmpty()
+                                        endTimeError = errors["endTime"].orEmpty()
+                                        registrationDeadlineError = errors["registrationDeadline"].orEmpty()
+                                        maxAttendeesError = errors["maxAttendees"].orEmpty()
                                     }
                                 },
                                 enabled = areAllFieldsFilled,
