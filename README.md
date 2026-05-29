@@ -1,556 +1,217 @@
-# Talkeys - Event Management Android App
+# Talkeys
 
-<div align="center">
-  <img src="https://img.shields.io/badge/Android-3DDC84?style=for-the-badge&logo=android&logoColor=white" alt="Android">
-  <img src="https://img.shields.io/badge/Kotlin-0095D5?&style=for-the-badge&logo=kotlin&logoColor=white" alt="Kotlin">
-  <img src="https://img.shields.io/badge/Jetpack%20Compose-4285F4?style=for-the-badge&logo=jetpackcompose&logoColor=white" alt="Jetpack Compose">
-  <img src="https://img.shields.io/badge/Material%20Design%203-757575?style=for-the-badge&logo=material-design&logoColor=white" alt="Material Design 3">
-</div>
+Talkeys is an event discovery, registration, profile, and payment app. The
+Android app is the production client today, and the repository is being migrated
+to Kotlin Multiplatform so Android and iOS can share business logic while
+keeping platform-native UI.
 
-##  Overview
+## Current Status
 
-Talkeys is a comprehensive event management Android application built with modern Android development practices. The app allows users to discover, create, manage, and participate in events with integrated payment processing and social features.
+The codebase is in an active KMP migration branch.
 
-##  Key Features
+- Android remains the primary runnable app.
+- `:shared` contains the cross-platform Kotlin code used by Android and exposed
+  to Swift.
+- `iosApp` is a SwiftUI app wired to the shared framework. It currently proves
+  framework loading, Swift interop, and shared ViewModel observation. Full iOS UI
+  parity is still in progress.
+- Shared logic currently covers events, profile/dashboard data, authentication
+  storage/repository foundations, payment checkout state, and common networking.
 
-###  **Core Functionality**
-- **Event Discovery**: Browse and search events with advanced filtering
-- **Event Creation**: Multi-step event creation wizard with validation
-- **User Authentication**: Google Sign-In integration with secure token management
-- **Payment Integration**: PhonePe payment gateway for event registrations
-- **Profile Management**: Customizable user profiles with avatar system
-- **Event Management**: Track hosted, registered, and liked events
+For detailed migration decisions, see:
 
-###  **Advanced Features**
-- **Event Mediator Pattern**: Centralized event coordination and state management
-- **LRU Caching System**: Comprehensive caching for optimal performance
-- **Offline Support**: Cached data availability when offline
-- **Real-time Validation**: Form validation with user-friendly error handling
-- **Image Optimization**: Dual-layer image caching (memory + disk)
-- **Smart Navigation**: Type-safe navigation with Jetpack Navigation Compose
-- **Advanced Event Filtering**: Real-time search and category-based filtering
-- **Event Actions**: Like, share, and register functionality with optimistic updates
-- **Multi-step Event Creation**: Coordinated wizard flow with draft saving
+- [TOOLCHAIN_DECISION.md](TOOLCHAIN_DECISION.md)
+- [INTEROP_DECISION.md](INTEROP_DECISION.md)
+- [FEATURE_PARITY_MATRIX.md](FEATURE_PARITY_MATRIX.md)
+- [CURRENT_CLIENT_API_AUDIT.md](CURRENT_CLIENT_API_AUDIT.md)
 
-###  **UI/UX Features**
-- **Material Design 3**: Modern, accessible design system
-- **Dark/Light Theme**: Automatic theme switching
-- **Responsive Layout**: Optimized for different screen sizes
-- **Custom Avatar System**: Personalized user avatars
-- **Smooth Animations**: Polished user interactions
-##  Architecture
+## Repository Layout
 
-### **Enhanced Clean Architecture with Mediator Pattern**
-```
-┌─────────────────────────────────────────────────────────────────┐
-│                        UI Layer                                 │
-│        (Screens, Compose UI, Event Listeners)                   │
-├─────────────────────────────────────────────────────────────────┤
-│                   Presentation Layer                            │
-│          (EventMediatedViewModel, StateFlow)                    │
-├─────────────────────────────────────────────────────────────────┤
-│                    Mediator Layer                               │
-│    (EventMediator, Coordination, State Management)              │
-├─────────────────────────────────────────────────────────────────┤
-│                    Domain Layer                                 │
-│             (Use Cases, Repositories)                           │
-├─────────────────────────────────────────────────────────────────┤
-│                     Data Layer                                  │
-│          (API Services, LRU Cache, DataStore)                   │
-└─────────────────────────────────────────────────────────────────┘
+```text
+.
+├── app/                 Android app: Jetpack Compose UI and Android platform integrations
+├── shared/              Kotlin Multiplatform module used by Android and iOS
+├── iosApp/              SwiftUI app that consumes the shared framework
+├── scripts/             Local build scripts
+├── gradle/              Version catalog and Gradle wrapper configuration
+└── *.md                 Architecture, audit, and migration notes
 ```
 
-### **Event Mediator Architecture Benefits**
-- ** Centralized Coordination**: All event operations flow through the mediator
-- ** Reactive State**: StateFlow-based state management with automatic UI updates
-- ** Loose Coupling**: Components communicate through the mediator, not directly
-- ** Advanced Filtering**: Real-time search and category filtering
-- ** Navigation Coordination**: Centralized navigation management
-- ** Error Handling**: Unified error processing with context awareness
-- ** Event Listeners**: Observer pattern for component communication
+## Architecture
+
+The target architecture is native UI on each platform with shared Kotlin for
+data, domain, and presentation state.
+
+```text
+Android Compose UI              SwiftUI UI
+       │                            │
+       ├──────── platform adapters ─┤
+       │                            │
+shared Kotlin ViewModels / StateFlow / validators
+       │
+shared repositories
+       │
+Ktor API clients, serialization, storage interfaces
+       │
+Platform implementations where needed
 ```
 
-### **Technology Stack**
-- **Language**: Kotlin 2.0.21
-- **UI Framework**: Jetpack Compose
-- **Architecture**: MVVM + Repository Pattern
-- **Dependency Injection**: Manual DI with Factory Pattern
-- **Networking**: Retrofit + OkHttp
-- **Image Loading**: Coil
-- **Local Storage**: DataStore Preferences + Encrypted SharedPreferences
-- **Navigation**: Navigation Compose
-- **Authentication**: Google Sign-In
-- **Payments**: PhonePe Intent SDK
-- **Security**: Android Keystore, AES-256-GCM Encryption
+### Shared Module
 
-##  Security Features
+The `:shared` module is Kotlin Multiplatform and currently includes:
 
-### **Production-Grade Security Implementation**
+- Ktor networking and JSON serialization
+- Koin dependency injection
+- AndroidX Lifecycle ViewModel KMP
+- SKIE for Swift-friendly Flow/ViewModel interop
+- Kermit logging facade
+- Events API, repository, UI state, detail/list ViewModels, and creation state
+- Profile/dashboard API, repository, and ViewModels
+- Auth repository, token storage interfaces, and platform storage foundations
+- Payment checkout state and PhonePe checkout URL preparation
 
-#### **Encrypted Data Storage**
-- **AES-256-GCM Encryption**: All sensitive data encrypted at rest using Android Keystore
-- **EncryptedSharedPreferences**: Both keys and values encrypted
-- **Secure Master Key**: Generated and managed by Android Keystore system
-- **Zero Plaintext Storage**: No sensitive data stored in plaintext
+Android still contains platform UI and integrations such as Compose screens,
+Google Sign-In UI, PhonePe SDK/WebView handling, Firebase messaging, Android
+navigation, and Android-specific sharing/image picking.
 
-```kotlin
-// SecureStorage wrapper for encrypted data
-class SecureStorage(context: Context) {
-    fun saveString(key: String, value: String): Result<Unit>
-    fun getString(key: String, defaultValue: String? = null): Result<String?>
-    fun remove(key: String): Result<Unit>
-    fun clear(): Result<Unit>
-}
-```
+## Toolchain
 
-#### **Secure Token Management**
-- **Encrypted Token Storage**: Authentication tokens encrypted using SecureStorage
-- **Token Expiry Validation**: 24-hour validity period with automatic expiration
-- **No Token Logging**: Token values never logged to prevent exposure
-- **Secure Flow API**: Reactive token access with Flow-based updates
+Key versions are managed in [gradle/libs.versions.toml](gradle/libs.versions.toml).
 
-```kotlin
-// TokenManager with encrypted storage
-class TokenManager(context: Context) {
-    suspend fun saveToken(token: String): Result<Unit>
-    suspend fun getToken(): Result<String?>
-    suspend fun isTokenValid(): Boolean
-    suspend fun clearToken(): Result<Unit>
-}
-```
+- Kotlin: `2.2.21`
+- Android Gradle Plugin: `8.10.1`
+- Gradle wrapper: `8.11.1`
+- Ktor: `3.0.1`
+- SKIE: `0.10.12`
+- AndroidX Lifecycle ViewModel KMP: `2.9.0`
 
-#### **Network Security**
-- **Certificate Pinning**: SSL certificate pinning for API endpoints
-- **Network Timeouts**: 30-second timeouts (connect/read/write)
-- **Debug-Only Logging**: HTTP logging only in DEBUG builds
-- **Centralized Configuration**: Reusable OkHttpClient factory
+## Prerequisites
 
-```kotlin
-// NetworkConfig for secure network communication
-object NetworkConfig {
-    fun createOkHttpClient(enableCertificatePinning: Boolean = false): OkHttpClient
-    fun createOkHttpClientWithInterceptors(
-        interceptors: List<Interceptor>,
-        enableCertificatePinning: Boolean = false
-    ): OkHttpClient
-}
-```
+- macOS for iOS builds
+- Xcode with iOS 16+ SDK
+- Android Studio or IntelliJ IDEA
+- JDK 17+
+- Android SDK 35
 
-#### **Security Best Practices**
-- ✅ **No Hardcoded Secrets**: All sensitive data encrypted or in environment variables
-- ✅ **Secure Communication**: HTTPS with optional certificate pinning
-- ✅ **Token Expiration**: Automatic token expiry and validation
-- ✅ **Error Handling**: No sensitive data in error messages or logs
-- ✅ **Android Keystore**: Hardware-backed encryption when available
+## Build
 
-> [!IMPORTANT]
-> **Certificate Pinning**: Update placeholder pins in `NetworkConfig.kt` before production deployment. Extract your certificate pins using:
-> ```bash
-> openssl s_client -connect api.talkeys.xyz:443 | openssl x509 -pubkey -noout | \
-> openssl pkey -pubin -outform der | openssl dgst -sha256 -binary | openssl enc -base64
-> ```
+Build Android only:
 
-## Quick Start
-
-### **Prerequisites**
-- Android Studio Hedgehog (2023.1.1) or newer
-- JDK 11 or higher
-- Android SDK API 24+ (Android 7.0)
-- Git
-
-### **Installation**
-
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/your-username/Talkeys_Official.git
-   cd Talkeys_Official
-   ```
-
-2. **Open in Android Studio**
-   - Launch Android Studio
-   - Select "Open an Existing Project"
-   - Navigate to the cloned directory
-
-3. **Sync Project**
-   ```bash
-   ./gradlew clean build
-   ```
-
-4. **Configure API Base URL**
-   ```kotlin
-   // In utils/Constants.kt
-   object API {
-       const val BASE_URL = "https://your-api-domain.com/"
-   }
-   ```
-
-5. **Run the Application**
-   - Connect an Android device or start an emulator
-   - Click the "Run" button or press `Ctrl+R`
-
-## 📁 Project Structure
-
-```
-app/src/main/java/com/example/talkeys_new/
-├── api/                          # API services and data models
-│   ├── DashboardApiService.kt
-│   ├── DashboardRepository.kt
-│   └── RetrofitClient.kt
-├── security/                     #  Security module
-│   └── SecureStorage.kt         # Encrypted storage wrapper
-├── network/                      #  Network configuration
-│   └── NetworkConfig.kt         # Certificate pinning, timeouts
-├── avatar/                       # Avatar customization system
-│   ├── AvatarCustomizerScreen.kt
-│   └── ProfileAvatarIntegration.kt
-├── dataModels/                   # Data classes and models
-│   └── DataClasses.kt
-├── navigation/                   # Navigation configuration
-│   └── AppNavigation.kt
-├── screens/                      # UI screens
-│   ├── authentication/          # Login/Signup screens
-│   │   ├── TokenManager.kt      #  Secure token management
-│   │   └── GoogleSignInManager.kt
-│   ├── events/                  # Event-related screens
-│   │   ├── mediator/            #  Event Mediator Pattern
-│   │   │   ├── EventMediator.kt
-│   │   │   ├── EventMediatorImpl.kt
-│   │   │   └── EventMediatorProvider.kt
-│   │   ├── EventMediatedViewModel.kt
-│   │   ├── EventsRepository.kt
-│   │   └── EventApiService.kt
-│   ├── home/                    # Home screen
-│   ├── profile/                 # Profile screens
-│   └── common/                  # Shared UI components
-├── utils/                       # Utility classes
-│   ├── cache/                   # LRU caching system
-│   ├── Constants.kt
-│   ├── NetworkUtils.kt
-│   ├── Result.kt
-│   └── ViewModelFactory.kt
-└── MainActivity.kt              # Main activity
-```
-
-##  Feature Implementation Guide
-
-### **Authentication Flow**
-```kotlin
-// Google Sign-In integration
-class AuthenticationManager {
-    suspend fun signInWithGoogle(): Result<UserResponse>
-    suspend fun verifyToken(token: String): Result<VerifyResponse>
-    suspend fun logout()
-}
-```
-
-### **Event Management**
-```kotlin
-// Event operations with Mediator Pattern
-class EventsRepository {
-    suspend fun getAllEvents(forceRefresh: Boolean = false): Result<List<EventResponse>>
-    suspend fun getEventById(eventId: String, forceRefresh: Boolean = false): Result<EventResponse>
-}
-
-// Enhanced Event Management with Mediator Pattern
-class EventMediatedViewModel(context: Context) : ViewModel(), EventListener {
-    private val mediator = EventMediatorProvider.getMediator(context)
-    
-    fun fetchAllEvents() = viewModelScope.launch { mediator.fetchAllEvents() }
-    fun likeEvent(eventId: String) = viewModelScope.launch { mediator.likeEvent(eventId) }
-    fun navigateToEventDetail(eventId: String) = mediator.navigateToEventDetail(eventId)
-}
-```
-
-### **Payment Integration**
-```kotlin
-// PhonePe payment flow
-class PaymentManager {
-    fun initiatePayment(eventId: String, amount: Double): PaymentResult
-    fun handlePaymentCallback(result: PaymentResult)
-}
-```
-
-### **Event Mediator Pattern**
-```kotlin
-// Centralized event coordination and state management
-interface EventMediator {
-    suspend fun fetchAllEvents(forceRefresh: Boolean = false)
-    suspend fun likeEvent(eventId: String): Boolean
-    fun navigateToEventDetail(eventId: String)
-    fun startEventCreation()
-    val eventList: StateFlow<List<EventResponse>>
-    val isLoading: StateFlow<Boolean>
-}
-
-// Usage in Composables
-@Composable
-fun ExploreEventsScreen(navController: NavController) {
-    val context = LocalContext.current
-    val viewModel: EventMediatedViewModel = viewModel { EventMediatedViewModel(context) }
-    
-    LaunchedEffect(navController) {
-        EventMediatorProvider.setNavController(navController)
-    }
-    
-    val events by viewModel.filteredEvents.collectAsState()
-    val isLoading by viewModel.isLoading.collectAsState()
-    
-    // UI with mediator-powered actions
-    EventsList(
-        events = events,
-        onEventClick = { event -> viewModel.navigateToEventDetail(event._id) },
-        onLikeEvent = { eventId -> viewModel.likeEvent(eventId) }
-    )
-}
-```
-
-### **Caching System**
-```kotlin
-// LRU cache usage
-val cachedData = CacheManager.eventsCache.get(key)
-CacheManager.eventsCache.put(key, data)
-CacheInvalidator.invalidateByDataType(DataChangeType.EVENT_CREATED)
-```
-
-## 🛠️ Development Workflow
-
-### **Code Style**
-- Follow [Kotlin Coding Conventions](https://kotlinlang.org/docs/coding-conventions.html)
-- Use meaningful variable and function names
-- Add KDoc comments for public APIs
-- Maximum line length: 120 characters
-
-### **Git Workflow**
 ```bash
-# Create feature branch
-git checkout -b feature/new-feature
-
-# Make changes and commit
-git add .
-git commit -m "feat: add new feature description"
-
-# Push and create PR
-git push origin feature/new-feature
+./gradlew :app:assembleDebug
 ```
 
-### **Commit Message Convention**
-```
-feat: add new feature
-fix: resolve bug in payment flow
-docs: update README documentation
-style: format code according to style guide
-refactor: restructure authentication logic
-test: add unit tests for event repository
-```
+Build the shared iOS simulator framework:
 
-### **Testing Strategy**
-```kotlin
-// Unit tests for repositories
-@Test
-fun `getAllEvents should return cached data when available`() {
-    // Test implementation
-}
-
-// UI tests for screens
-@Test
-fun `login screen should show error for invalid credentials`() {
-    // Test implementation
-}
-```
-
-##  Performance Optimization
-
-### **Caching Strategy**
-- **Events**: 30-minute TTL, 100 items max
-- **User Profile**: 15-minute TTL, 50 items max
-- **Images**: 10MB memory + 50MB disk cache
-- **Automatic cleanup**: Every 5 minutes
-
-### **Memory Management**
-- Lazy loading for large lists
-- Image size optimization
-- Proper lifecycle management
-- Cache size limits
-
-### **Network Optimization**
-- Request deduplication
-- Retry mechanisms with exponential backoff
-- Connection pooling
-- Request/response logging (debug builds only)
-
-##  Configuration
-
-### **Build Variants**
-```kotlin
-android {
-    buildTypes {
-        debug {
-            isDebuggable = true
-            applicationIdSuffix = ".debug"
-            buildConfigField("String", "API_BASE_URL", "\"https://api-dev.example.com/\"")
-        }
-        release {
-            isMinifyEnabled = true
-            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            buildConfigField("String", "API_BASE_URL", "\"https://api.example.com/\"")
-        }
-    }
-}
-```
-
-### **API Configuration**
-```kotlin
-// Configure different environments
-object Constants {
-    object API {
-        const val BASE_URL = BuildConfig.API_BASE_URL
-        const val TIMEOUT_SECONDS = 30L
-    }
-    
-    object Cache {
-        const val EVENTS_TTL_MINUTES = 30L
-        const val PROFILE_TTL_MINUTES = 15L
-    }
-}
-```
-
-##  Troubleshooting
-
-### **Common Issues**
-
-**Build Errors**
 ```bash
-# Clean and rebuild
-./gradlew clean
-./gradlew build
-
-# Clear Android Studio caches
-File > Invalidate Caches and Restart
+./gradlew :shared:linkDebugFrameworkIosSimulatorArm64
 ```
 
-**Network Issues**
-```kotlin
-// Check network connectivity
-if (!NetworkUtils.isNetworkAvailable(context)) {
-    // Handle offline state
-}
-```
+Build Android and iOS together:
 
-**Authentication Problems**
-```kotlin
-// Clear stored tokens
-TokenManager.clearToken()
-// Re-authenticate user
-```
-
-**Payment Integration Issues**
-- Verify PhonePe SDK integration
-- Check merchant credentials
-- Validate API endpoints
-- Review callback handling
-
-### **Debugging Tools**
-- **Network**: Use OkHttp logging interceptor
-- **Cache**: Check cache statistics in logs
-- **UI**: Use Layout Inspector
-- **Performance**: Use Android Profiler
-
-## 📚 API Documentation
-
-### **Backend Requirements**
-The app requires backend APIs for:
-- User authentication and profile management
-- Event CRUD operations
-- Payment processing (PhonePe integration)
-- File upload for event images
-
-See [BACKEND_API_SPEC.md](BACKEND_API_SPEC.md) for detailed API specifications.
-
-### **Architecture Documentation**
-- **[MEDIATOR_PATTERN_IMPLEMENTATION.md](MEDIATOR_PATTERN_IMPLEMENTATION.md)**: Comprehensive guide to the Event Mediator Pattern implementation
-- **[CACHING_IMPLEMENTATION.md](CACHING_IMPLEMENTATION.md)**: LRU caching system documentation
-
-### **Key Endpoints**
-```
-POST /api/auth/google-signin
-GET  /api/events
-POST /api/events
-GET  /api/events/{id}
-POST /api/payment/create-order
-GET  /api/payment/order-status/{orderId}
-```
-
-##  Deployment
-
-### **Release Build**
 ```bash
-# Generate signed APK
-./gradlew assembleRelease
-
-# Generate App Bundle (recommended)
-./gradlew bundleRelease
+./scripts/build-all.sh
 ```
 
-### **Play Store Preparation**
-1. Update version code and name in `build.gradle.kts`
-2. Generate signed release build
-3. Test on multiple devices
-4. Prepare store listing materials
-5. Upload to Play Console
+Run shared tests:
 
-##  Contributing
+```bash
+./gradlew :shared:allTests
+```
 
-### **Getting Started**
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Add tests if applicable
-5. Submit a pull request
+From Phase 2 onward, `./scripts/build-all.sh` is the local gate for migration
+work.
 
-### **Code Review Checklist**
-- [ ] Code follows style guidelines
-- [ ] All tests pass
-- [ ] Documentation updated
-- [ ] No memory leaks
-- [ ] Proper error handling
-- [ ] Accessibility considerations
+## Running the Apps
 
-## 📄 License
+### Android
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+Open the repository in Android Studio and run the `app` configuration on an
+emulator or device.
 
-##  Support
+Google Sign-In requires the app package and signing certificate SHA fingerprint
+to be registered in the Google Cloud OAuth client. A Google Sign-In `ApiException:
+10` usually means the SHA fingerprint or OAuth client configuration does not
+match the build being installed.
 
-For technical support or questions:
-- **Email**: support@example.com
-- **Documentation**: See project wiki
-- **Issue Tracker**: GitHub Issues tab
+### iOS
 
----
+Open:
 
-##  Recent Updates
+```text
+iosApp/iosApp.xcodeproj
+```
 
-### **v1.1.0** (Latest - January 2026)
-- ✅ **Production-Grade Security**: Encrypted storage, secure token management, certificate pinning
-- ✅ **Event Mediator Pattern Implementation**: Complete architectural enhancement
-- ✅ **Advanced Event Filtering**: Real-time search and category filtering
-- ✅ **Enhanced Event Actions**: Like, share, register with optimistic updates
-- ✅ **Improved Error Handling**: Centralized error management with proper Exception handling
-- ✅ **Code Quality Improvements**: Fixed linter errors and improved type safety
-- ✅ **Reactive State Management**: StateFlow-based event state coordination
-- ✅ **Enhanced Navigation**: Centralized navigation coordination through mediator
-- ✅ **Event Creation Flow**: Coordinated multi-step wizard with draft saving
-- ✅ **Listener Pattern**: Component communication for better separation of concerns
-- ✅ **Documentation**: Comprehensive mediator pattern implementation guide
+The Xcode project uses Kotlin Multiplatform direct integration. Its build phase
+invokes `:shared:embedAndSignAppleFrameworkForXcode`, so Xcode builds and embeds
+the Kotlin framework before compiling Swift.
 
-### **v1.0.0** (Base)
-- ✅ Complete LRU caching system implementation
-- ✅ PhonePe payment integration
-- ✅ Google Sign-In authentication
-- ✅ Multi-step event creation flow
-- ✅ Comprehensive form validation
-- ✅ Avatar customization system
-- ✅ Material Design 3 UI
+## Security Notes
 
+- Do not commit production secrets.
+- Payment client secrets, signing secrets, and private credentials must live on
+  the backend only. Mobile binaries are extractable.
+- The mobile app may contain only public identifiers required by an SDK, such as
+  a public client ID when the provider documents it as safe for clients.
+- Auth tokens must not be logged.
+- Payment request bodies, redirect tokens, order tokens, and callback payloads
+  must not be logged.
 
----
+PhonePe order creation and transaction verification should be performed by the
+backend. The client should receive only client-consumable checkout data and then
+ask the backend to verify transaction status.
+
+## Backend/API Notes
+
+The app currently talks to:
+
+```text
+https://api.talkeys.xyz
+```
+
+Endpoint inventory and known contract gaps are documented in:
+
+- [CURRENT_CLIENT_API_AUDIT.md](CURRENT_CLIENT_API_AUDIT.md)
+- [BACKEND_API_SPEC.md](BACKEND_API_SPEC.md)
+
+Do not invent endpoint paths or response types during migration. Use the audit
+documents and the existing client code as the source of truth, then update the
+docs when the backend contract changes.
+
+## Development Rules
+
+- Keep Android building after each migration slice.
+- Keep shared code platform-neutral unless the file is under `androidMain` or
+  `iosMain`.
+- Prefer shared repositories and shared ViewModels for business logic.
+- Keep Compose and SwiftUI platform-native.
+- Add `commonTest` coverage for new shared logic, especially Ktor API and
+  serialization behavior.
+- Run `./scripts/build-all.sh` before reporting migration work as complete.
+
+## Git Workflow
+
+The KMP migration work lives on:
+
+```text
+kmp/ios-migration
+```
+
+Recommended flow:
+
+```bash
+git checkout kmp/ios-migration
+git pull --ff-only
+./scripts/build-all.sh
+git add <changed files>
+git commit -m "type: concise description"
+git push
+```
+
+Use focused commits. Avoid mixing feature migration, toolchain changes, and
+cleanup unless they are directly connected.
+
+## License
+
+License information has not been finalized in this repository. Add a `LICENSE`
+file before public distribution.
