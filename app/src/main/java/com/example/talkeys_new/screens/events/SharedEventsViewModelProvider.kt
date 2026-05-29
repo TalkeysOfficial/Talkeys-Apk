@@ -24,8 +24,9 @@ import org.koin.compose.koinInject
  * [com.talkeys.shared.di.sharedModule]) and create the ViewModel via
  * the shared KMP factory, so Android and iOS get identical behaviour.
  *
- * Existing Retrofit-backed [EventViewModel] is NOT removed or altered.
- * Screens can migrate incrementally by switching to these helpers.
+ * The current event read pipeline is shared KMP. Android keeps platform UI and
+ * action handling, while events list/detail data comes from shared repositories
+ * and shared ViewModels.
  */
 
 @Composable
