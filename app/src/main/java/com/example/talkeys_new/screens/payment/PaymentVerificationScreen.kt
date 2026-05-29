@@ -22,7 +22,6 @@ import com.example.talkeys_new.screens.authentication.TokenManager
 import android.util.Log
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import retrofit2.HttpException
 
 /**
  * Payment Verification Screen
@@ -37,19 +36,25 @@ fun PaymentVerificationScreen(
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
+    val paymentViewModel = sharedPaymentCheckoutViewModel()
+    val sharedVerificationState by paymentViewModel.verificationState.collectAsState()
     
     var verificationState by remember { mutableStateOf<VerificationState>(VerificationState.Checking) }
     var retryCount by remember { mutableStateOf(0) }
     val maxRetries = 3
+
+    suspend fun requestVerification() {
+        val authToken = getPaymentAuthToken(context)
+        paymentViewModel.verifyPaymentStatus(merchantOrderId, authToken)
+    }
     
     // Auto-verify on screen load
     LaunchedEffect(merchantOrderId) {
-        verifyPayment(
-            context = context,
-            merchantOrderId = merchantOrderId,
-            passId = passId,
-            onResult = { state -> verificationState = state }
-        )
+        requestVerification()
+    }
+
+    LaunchedEffect(sharedVerificationState) {
+        verificationState = sharedVerificationState.toVerificationState(fallbackPassId = passId)
     }
     
     Scaffold(
@@ -211,12 +216,7 @@ fun PaymentVerificationScreen(
                                                 verificationState = VerificationState.Checking
                                                 scope.launch {
                                                     delay(1000)
-                                                    verifyPayment(
-                                                        context = context,
-                                                        merchantOrderId = merchantOrderId,
-                                                        passId = passId,
-                                                        onResult = { state -> verificationState = state }
-                                                    )
+                                                    requestVerification()
                                                 }
                                             }
                                         },
@@ -279,12 +279,7 @@ fun PaymentVerificationScreen(
                                             verificationState = VerificationState.Checking
                                             scope.launch {
                                                 delay(2000)
-                                                verifyPayment(
-                                                    context = context,
-                                                    merchantOrderId = merchantOrderId,
-                                                    passId = passId,
-                                                    onResult = { state -> verificationState = state }
-                                                )
+                                                requestVerification()
                                             }
                                         },
                                         modifier = Modifier.weight(1f),
@@ -345,12 +340,7 @@ fun PaymentVerificationScreen(
                                             verificationState = VerificationState.Checking
                                             scope.launch {
                                                 delay(1000)
-                                                verifyPayment(
-                                                    context = context,
-                                                    merchantOrderId = merchantOrderId,
-                                                    passId = passId,
-                                                    onResult = { state -> verificationState = state }
-                                                )
+                                                requestVerification()
                                             }
                                         },
                                         modifier = Modifier.weight(1f),
@@ -381,56 +371,32 @@ sealed class VerificationState {
     data class Error(val message: String) : VerificationState()
 }
 
-/**
- * Verify payment status with backend
- */
-private suspend fun verifyPayment(
-    context: android.content.Context,
-    merchantOrderId: String,
-    passId: String,
-    onResult: (VerificationState) -> Unit
-) {
+private suspend fun getPaymentAuthToken(context: android.content.Context): String? {
     try {
-        Log.d("PaymentVerification", "Verifying payment status")
-        
-        // Get auth token
         val tokenManager = TokenManager(context)
         val tokenResult = tokenManager.getToken()
-        
-        val authToken = when (tokenResult) {
-            is com.example.talkeys_new.utils.Result.Success -> tokenResult.data
+
+        return when (tokenResult) {
+            is com.example.talkeys_new.utils.Result.Success -> tokenResult.data?.takeIf { it.isNotBlank() }
             else -> null
         }
-        
-        // Call backend API to check status
-        val paymentRepository = org.koin.core.context.GlobalContext.get().get<com.talkeys.shared.data.payment.PaymentRepository>()
-        val result = paymentRepository.verifyPaymentStatus(merchantOrderId, authToken)
-        
-        result.fold(
-            onSuccess = { statusData ->
-                Log.d("PaymentVerification", "Status: ${statusData.paymentStatus}")
-                when (statusData.paymentStatus.uppercase()) {
-                    "COMPLETED" -> {
-                        onResult(VerificationState.Success(statusData.passId, statusData.passUUID))
-                    }
-                    "PENDING" -> {
-                        onResult(VerificationState.Pending)
-                    }
-                    "FAILED" -> {
-                        onResult(VerificationState.Failed("Payment was not successful"))
-                    }
-                    else -> {
-                        onResult(VerificationState.Error("Unknown payment status: ${statusData.paymentStatus}"))
-                    }
-                }
-            },
-            onFailure = { exception ->
-                Log.e("PaymentVerification", "Error: ${exception.message}")
-                onResult(VerificationState.Error(exception.message ?: "Failed to verify payment"))
-            }
-        )
     } catch (e: Exception) {
-        Log.e("PaymentVerification", "Exception: ${e.message}")
-        onResult(VerificationState.Error(e.message ?: "An error occurred"))
+        Log.e("PaymentVerification", "Token read failed: ${e.message}")
+        return null
+    }
+}
+
+private fun com.talkeys.shared.presentation.payment.PaymentVerificationUiState.toVerificationState(
+    fallbackPassId: String
+): VerificationState {
+    if (isLoading) return VerificationState.Checking
+    errorMessage?.let { return VerificationState.Error(it) }
+
+    return when (status?.uppercase()) {
+        "COMPLETED" -> VerificationState.Success(passId ?: fallbackPassId, passUUID)
+        "PENDING" -> VerificationState.Pending
+        "FAILED" -> VerificationState.Failed("Payment was not successful")
+        null -> VerificationState.Checking
+        else -> VerificationState.Error("Unknown payment status: $status")
     }
 }

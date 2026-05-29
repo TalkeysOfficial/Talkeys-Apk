@@ -56,6 +56,11 @@ class PaymentCheckoutViewModel(
     }
 
     fun verifyPaymentStatus(merchantOrderId: String, authToken: String?) {
+        if (authToken.isNullOrBlank()) {
+            _verificationState.value = PaymentVerificationUiState(errorMessage = "Please login to verify payment")
+            return
+        }
+
         _verificationState.value = PaymentVerificationUiState(isLoading = true)
         viewModelScope.launch {
             repository.verifyPaymentStatus(merchantOrderId, authToken)

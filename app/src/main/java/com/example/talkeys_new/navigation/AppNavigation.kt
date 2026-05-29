@@ -132,25 +132,7 @@ fun AppNavigation(modifier: Modifier) {
             val merchantOrderId = backStackEntry.arguments?.getString("merchantOrderId") ?: ""
             val passId = backStackEntry.arguments?.getString("passId") ?: ""
 
-            // Decode the URL structure but preserve the token encoding
-            // Split at "token=" to handle the token separately
-            val paymentUrl = if (encodedPaymentUrl.contains("token%3D")) {
-                val parts = encodedPaymentUrl.split("token%3D", limit = 2)
-                if (parts.size == 2) {
-                    // Decode the URL part before token
-                    val urlPart = parts[0]
-                        .replace("%3A", ":")
-                        .replace("%2F", "/")
-                        .replace("%3F", "?")
-                    // Keep the token part as-is (already properly encoded)
-                    urlPart + "token=" + parts[1]
-                } else {
-                    encodedPaymentUrl
-                }
-            } else {
-                // Fallback: decode everything
-                android.net.Uri.decode(encodedPaymentUrl)
-            }
+            val paymentUrl = decodePaymentUrlArgument(encodedPaymentUrl)
 
             com.example.talkeys_new.screens.payment.WebViewPaymentScreen(
                 paymentUrl = paymentUrl,
@@ -179,4 +161,12 @@ fun AppNavigation(modifier: Modifier) {
         }
 
     }
+}
+
+private fun decodePaymentUrlArgument(paymentUrlArgument: String): String {
+    if (paymentUrlArgument.startsWith("http://") || paymentUrlArgument.startsWith("https://")) {
+        return paymentUrlArgument
+    }
+
+    return android.net.Uri.decode(paymentUrlArgument)
 }

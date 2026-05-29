@@ -75,6 +75,21 @@ class PaymentCheckoutViewModelTest {
         assertTrue(viewModel.verificationState.value.errorMessage == null)
     }
 
+    @Test
+    fun verifyPaymentStatus_requiresAuthToken() = runTest {
+        val viewModel = PaymentCheckoutViewModel(
+            repository = fakeRepository(
+                bookTicketResult = Result.success(orderData()),
+                statusResult = Result.success(PaymentStatusData("pass-1", "uuid-1", "COMPLETED"))
+            )
+        )
+
+        viewModel.verifyPaymentStatus("merchant-1", authToken = null)
+
+        assertFalse(viewModel.verificationState.value.isLoading)
+        assertEquals("Please login to verify payment", viewModel.verificationState.value.errorMessage)
+    }
+
     private fun fakeRepository(
         bookTicketResult: Result<PaymentOrderData>,
         statusResult: Result<PaymentStatusData> = Result.failure(Exception("not used"))

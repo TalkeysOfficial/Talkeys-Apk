@@ -405,11 +405,7 @@ private fun PhonePePaymentSection(
  * Backend accepts: "VIP", "General", "Staff" (default: "General")
  */
 private fun determinePassType(amount: Double): String {
-    return when {
-        amount >= 500 -> "VIP"      // Higher amounts get VIP
-        amount > 0 -> "General"     // Regular paid events get General
-        else -> "General"           // Default to General
-    }
+    return "General"
 }
 
 /**
