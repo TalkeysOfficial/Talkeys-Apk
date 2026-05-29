@@ -21,7 +21,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
@@ -30,31 +29,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
-import com.example.talkeys_new.screens.events.EventViewModel
-import com.example.talkeys_new.screens.events.EventsRepository
+import com.example.talkeys_new.screens.dashboard.sharedDashboardViewModel
+import com.example.talkeys_new.screens.events.toAndroidEventResponse
 import com.example.talkeys_new.screens.events.exploreEvents.EventCard
 import com.example.talkeys_new.screens.events.exploreEvents.SkeletonEventCard
-import com.example.talkeys_new.screens.events.provideEventApiService
+import com.talkeys.shared.data.dashboard.UserEventType
+import com.talkeys.shared.presentation.dashboard.SharedDashboardViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun LikedEventsScreen(
-    navController: NavController
+    navController: NavController,
+    viewModel: SharedDashboardViewModel = sharedDashboardViewModel()
 ) {
-    val context = LocalContext.current
-    val repository = remember { EventsRepository(provideEventApiService(context)) }
-    val viewModel = remember { EventViewModel(repository, context) }
-    
-    // State collection
-    val allEvents by viewModel.allEvents.collectAsState()  // Use allEvents instead of eventList to get both live and past
-    val isLoading by viewModel.isLoading.collectAsState()
-    val error by viewModel.errorMessage.collectAsState()
-    val likedEventIds by viewModel.likedEventIds.collectAsState()
-    
-    // Filter liked events (from all events, not just live ones)
-    val likedEvents = remember(allEvents, likedEventIds) {
-        allEvents.filter { event -> likedEventIds.contains(event._id) }
+    val uiState by viewModel.uiState.collectAsState()
+    val likedEvents = remember(uiState.events) {
+        uiState.events.map { it.toAndroidEventResponse() }
     }
+    val isLoading = uiState.isLoading
+    val error = uiState.error
     
     // Group liked events by category
     val groupedLikedEvents = remember(likedEvents) {
@@ -63,9 +56,9 @@ fun LikedEventsScreen(
         }.filterValues { it.isNotEmpty() }
     }
     
-    // Fetch all events when screen is first displayed
+    // Fetch liked/bookmarked events from the shared dashboard repository.
     LaunchedEffect(Unit) {
-        viewModel.fetchAllEvents()
+        viewModel.loadEvents(UserEventType.Bookmarked)
     }
 
     Column(
@@ -132,7 +125,7 @@ fun LikedEventsScreen(
                     Spacer(modifier = Modifier.height(16.dp))
 
                     Button(
-                        onClick = { viewModel.fetchAllEvents(forceRefresh = true) },
+                        onClick = { viewModel.loadEvents(UserEventType.Bookmarked) },
                         colors = ButtonDefaults.buttonColors(
                             containerColor = Color(0xFF8A44CB)
                         )

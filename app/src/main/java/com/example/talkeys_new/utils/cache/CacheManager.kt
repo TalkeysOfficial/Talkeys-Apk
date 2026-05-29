@@ -2,7 +2,7 @@ package com.example.talkeys_new.utils.cache
 
 import android.util.Log
 import com.example.talkeys_new.dataModels.EventResponse
-import com.example.talkeys_new.api.UserProfileResponse
+import com.talkeys.shared.data.dashboard.UserProfile
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -36,7 +36,7 @@ object CacheManager {
         ttlMillis = TimeUnit.MINUTES.toMillis(EVENTS_TTL_MINUTES)
     )
     
-    val userProfileCache = LruCache<UserProfileResponse>(
+    val userProfileCache = LruCache<UserProfile>(
         maxSize = USER_PROFILE_CACHE_SIZE,
         ttlMillis = TimeUnit.MINUTES.toMillis(USER_PROFILE_TTL_MINUTES)
     )
