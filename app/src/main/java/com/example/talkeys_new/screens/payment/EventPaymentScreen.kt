@@ -21,14 +21,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
-import com.example.talkeys_new.MainActivity
 import com.example.talkeys_new.R
-import com.example.talkeys_new.utils.PhonePePaymentManager
-import android.util.Log
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.CoroutineScope
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -242,7 +236,25 @@ private fun PhonePePaymentSection(
 ) {
     val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+    val paymentViewModel = sharedPaymentCheckoutViewModel()
+    val checkoutState by paymentViewModel.checkoutState.collectAsState()
+    val errorMessage = checkoutState.errorMessage
+
+    LaunchedEffect(checkoutState.checkoutData) {
+        checkoutState.checkoutData?.let { checkout ->
+            isLoading = false
+            val encodedUrl = android.net.Uri.encode(checkout.paymentUrl)
+            navController.navigate(
+                "webview_payment/$encodedUrl/${checkout.merchantOrderId}/${checkout.passId}"
+            )
+            paymentViewModel.clearCheckout()
+        }
+    }
+
+    LaunchedEffect(checkoutState.isLoading) {
+        isLoading = checkoutState.isLoading
+    }
     
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -337,81 +349,26 @@ private fun PhonePePaymentSection(
             Button(
                 onClick = {
                     isLoading = true
-                    errorMessage = null
                     onPaymentInitiated()
                     
                     // Prepare payment data
                     val passType = determinePassType(amount)
                     val friends = getUserSelectedFriends()
                     
-                    // Create payment order and open WebView
-                    kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.IO).launch {
-                        try {
-                            // Get auth token
-                            val tokenManager = com.example.talkeys_new.screens.authentication.TokenManager(context)
-                            val tokenResult = tokenManager.getToken()
-                            
-                            val authToken = when (tokenResult) {
-                                is com.example.talkeys_new.utils.Result.Success -> {
-                                    tokenResult.data?.takeIf { it.isNotEmpty() }
-                                }
-                                else -> null
-                            }
-                            
-                            if (authToken == null) {
-                                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                    isLoading = false
-                                    errorMessage = "Please login to continue"
-                                }
-                                return@launch
-                            }
-                            
-                            // Call backend to create payment order
-                            val paymentRepository = org.koin.core.context.GlobalContext.get().get<com.talkeys.shared.data.payment.PaymentRepository>()
-                            val result = paymentRepository.bookTicket(eventId, passType, friends, authToken)
-                            
-                            result.fold(
-                                onSuccess = { paymentData ->
-                                    Log.d("WebViewPayment", "Payment order created")
-
-                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        isLoading = false
-                                        
-                                        // Construct PhonePe payment URL from token
-                                        // Backend sends token, we need to construct the full URL
-                                        val paymentUrl = if (paymentData.token.startsWith("http")) {
-                                            // Token is already a full URL
-                                            paymentData.token
-                                        } else {
-                                            // Construct URL from token (UAT/Sandbox environment)
-                                            // URL-encode the token to preserve + characters (they become %2B)
-                                            val encodedToken = java.net.URLEncoder.encode(paymentData.token, "UTF-8")
-                                            "https://mercury-t2.phonepe.com/transact/pg?token=$encodedToken"
-                                        }
-                                        
-                                        // Navigate to WebView payment screen
-                                        // Use Uri.encode() which preserves the already-encoded characters
-                                        val encodedUrl = android.net.Uri.encode(paymentUrl)
-                                        navController.navigate(
-                                            "webview_payment/$encodedUrl/${paymentData.merchantOrderId}/${paymentData.passId}"
-                                        )
-                                    }
-                                },
-                                onFailure = { exception ->
-                                    Log.e("WebViewPayment", "Failed to create payment order: ${exception.message}")
-                                    kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                        isLoading = false
-                                        errorMessage = "Failed to create payment: ${exception.message}"
-                                    }
-                                }
-                            )
-                        } catch (e: Exception) {
-                            Log.e("WebViewPayment", "Error: ${e.message}")
-                            kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                                isLoading = false
-                                errorMessage = "Error: ${e.message}"
-                            }
+                    scope.launch {
+                        val tokenManager = com.example.talkeys_new.screens.authentication.TokenManager(context)
+                        val tokenResult = tokenManager.getToken()
+                        val authToken = when (tokenResult) {
+                            is com.example.talkeys_new.utils.Result.Success -> tokenResult.data?.takeIf { it.isNotBlank() }
+                            else -> null
                         }
+
+                        paymentViewModel.startCheckout(
+                            eventId = eventId,
+                            passType = passType,
+                            friends = friends,
+                            authToken = authToken
+                        )
                     }
                 },
                 modifier = Modifier
@@ -448,11 +405,7 @@ private fun PhonePePaymentSection(
  * Backend accepts: "VIP", "General", "Staff" (default: "General")
  */
 private fun determinePassType(amount: Double): String {
-    return when {
-        amount >= 500 -> "VIP"      // Higher amounts get VIP
-        amount > 0 -> "General"     // Regular paid events get General
-        else -> "General"           // Default to General
-    }
+    return "General"
 }
 
 /**

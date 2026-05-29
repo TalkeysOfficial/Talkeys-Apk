@@ -4,7 +4,7 @@ import com.talkeys.shared.network.PaymentApiService
 import com.talkeys.shared.config.ProductionConfig
 import co.touchlab.kermit.Logger
 
-class PaymentRepository(private val paymentApiService: PaymentApiService) {
+open class PaymentRepository(private val paymentApiService: PaymentApiService) {
     
     private val logger = Logger.withTag("PaymentRepository")
     
@@ -18,7 +18,7 @@ class PaymentRepository(private val paymentApiService: PaymentApiService) {
     /**
      * Book ticket and get payment order details
      */
-    suspend fun bookTicket(
+    open suspend fun bookTicket(
         eventId: String,
         passType: String,
         friends: List<Friend>,
@@ -65,7 +65,7 @@ class PaymentRepository(private val paymentApiService: PaymentApiService) {
     /**
      * Verify payment status after PhonePe payment completion
      */
-    suspend fun verifyPaymentStatus(merchantOrderId: String, authToken: String? = null): Result<PaymentStatusData> {
+    open suspend fun verifyPaymentStatus(merchantOrderId: String, authToken: String? = null): Result<PaymentStatusData> {
         logger.d { "Verifying payment status" }
         
         return try {

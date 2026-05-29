@@ -2,6 +2,7 @@ package com.example.talkeys_new.screens.events.eventDetailScreen
 
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.util.Log
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.*
@@ -888,9 +889,12 @@ private fun RegisterButton(
                 val eventId = event._id?.takeIf { it.isNotEmpty() } ?: return@clickable
                 val eventName = event.name?.takeIf { it.isNotEmpty() } ?: "Unknown Event"
                 val ticketPrice = event.ticketPrice ?: 0
+                val encodedEventId = Uri.encode(eventId)
+                val encodedEventName = Uri.encode(eventName)
+                val encodedTicketPrice = Uri.encode(ticketPrice.toString())
 
                 try {
-                    navController.navigate("payment/$eventId/$eventName/$ticketPrice")
+                    navController.navigate("payment/$encodedEventId/$encodedEventName/$encodedTicketPrice")
                 } catch (e: Exception) {
                     Log.e("RegisterButton", "Navigation failed", e)
                 }

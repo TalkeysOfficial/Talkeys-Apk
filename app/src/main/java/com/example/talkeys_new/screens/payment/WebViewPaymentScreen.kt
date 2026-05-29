@@ -313,11 +313,7 @@ private fun checkCallbackUrl(
         // Success callback
         url.contains("/ticket/success") || url.contains("payment/success") -> {
             Log.d("WebViewPayment", "Success callback detected")
-            // Extract passUUID if present
-            val passUUID = extractQueryParam(url, "uuid") ?: extractQueryParam(url, "passUUID")
-            navController.navigate("registration_success") {
-                popUpTo(0) { inclusive = false }
-            }
+            navController.navigate("payment_verification/$merchantOrderId/$passId")
             true
         }
         
@@ -344,17 +340,5 @@ private fun checkCallbackUrl(
         }
         
         else -> false
-    }
-}
-
-/**
- * Extract query parameter from URL
- */
-private fun extractQueryParam(url: String, param: String): String? {
-    return try {
-        val uri = android.net.Uri.parse(url)
-        uri.getQueryParameter(param)
-    } catch (e: Exception) {
-        null
     }
 }

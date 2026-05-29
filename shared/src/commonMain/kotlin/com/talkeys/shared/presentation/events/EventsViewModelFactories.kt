@@ -40,6 +40,28 @@ class EventDetailViewModelFactory(
     }
 }
 
+class EventCoordinatorFactory(
+    private val repository: EventsRepository
+) : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: KClass<T>, extras: CreationExtras): T {
+        require(modelClass == EventCoordinator::class) {
+            "EventCoordinatorFactory cannot create ${modelClass.simpleName}"
+        }
+        return EventCoordinator(repository) as T
+    }
+}
+
+class EventCreationViewModelFactory : ViewModelProvider.Factory {
+    @Suppress("UNCHECKED_CAST")
+    override fun <T : ViewModel> create(modelClass: KClass<T>, extras: CreationExtras): T {
+        require(modelClass == EventCreationViewModel::class) {
+            "EventCreationViewModelFactory cannot create ${modelClass.simpleName}"
+        }
+        return EventCreationViewModel() as T
+    }
+}
+
 /**
  * Pre-wired factory accessors that pull [EventsRepository] from the Koin
  * graph. Callable from Swift as:
@@ -54,3 +76,9 @@ val eventsListViewModelFactory: ViewModelProvider.Factory
 
 val eventDetailViewModelFactory: ViewModelProvider.Factory
     get() = EventDetailViewModelFactory(KoinHelper.get())
+
+val eventCoordinatorFactory: ViewModelProvider.Factory
+    get() = EventCoordinatorFactory(KoinHelper.get())
+
+val eventCreationViewModelFactory: ViewModelProvider.Factory =
+    EventCreationViewModelFactory()
