@@ -161,22 +161,6 @@ PhonePe order creation and transaction verification should be performed by the
 backend. The client should receive only client-consumable checkout data and then
 ask the backend to verify transaction status.
 
-## Backend/API Notes
-
-The app currently talks to:
-
-```text
-https://api.talkeys.xyz
-```
-
-Endpoint inventory and known contract gaps are documented in:
-
-- [CURRENT_CLIENT_API_AUDIT.md](CURRENT_CLIENT_API_AUDIT.md)
-- [BACKEND_API_SPEC.md](BACKEND_API_SPEC.md)
-
-Do not invent endpoint paths or response types during migration. Use the audit
-documents and the existing client code as the source of truth, then update the
-docs when the backend contract changes.
 
 ## Development Rules
 
