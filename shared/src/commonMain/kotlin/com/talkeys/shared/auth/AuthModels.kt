@@ -2,34 +2,34 @@ package com.talkeys.shared.auth
 
 import kotlinx.serialization.Serializable
 
+/**
+ * Backend response for `POST /verify`.
+ *
+ * Shape matches the live Android Retrofit contract:
+ *   `UserResponse(accessToken: String, name: String)`
+ * Citation: app/src/main/java/com/example/talkeys_new/dataModels/DataClasses.kt:3-4
+ *
+ * No other fields are present in the observed backend response.
+ */
 @Serializable
-data class User(
-    val id: String,
+data class VerifyTokenResponse(
+    val accessToken: String,
     val name: String,
-    val email: String,
-    val displayName: String? = null,
-    val profilePicture: String? = null,
-    val about: String? = null,
-    val pronouns: String? = null
 )
 
-@Serializable
-data class GoogleSignInRequest(
-    val idToken: String
-)
-
-@Serializable
-data class AuthResponse(
-    val success: Boolean,
-    val message: String,
-    val user: User? = null,
-    val accessToken: String? = null,
-    val name: String? = null
-)
-
+/**
+ * Shared auth state exposed to ViewModels and UI.
+ *
+ * The access token is **not** exposed here — it is stored internally
+ * in [TokenStorage] and retrieved via [AuthRepository] when needed
+ * for authenticated API calls. UI layers should observe
+ * [isAuthenticated] and [displayName] only.
+ */
 sealed class AuthState {
-    object Idle : AuthState()
-    object Loading : AuthState()
-    data class Success(val user: User, val token: String) : AuthState()
+    data object Idle : AuthState()
+    data object Loading : AuthState()
+    data class Authenticated(val displayName: String) : AuthState()
     data class Error(val message: String) : AuthState()
+
+    val isAuthenticated: Boolean get() = this is Authenticated
 }

@@ -23,23 +23,26 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
-import com.example.talkeys_new.screens.authentication.AuthService.RetrofitClient
 import com.example.talkeys_new.screens.authentication.GoogleAuthClient
 import com.example.talkeys_new.screens.authentication.TokenManager
 import com.example.talkeys_new.screens.authentication.GoogleSignInManager
 import com.example.talkeys_new.screens.authentication.UserProfile
 import com.example.talkeys_new.screens.authentication.signupScreen.CustomOutlinedTextField
+import com.talkeys.shared.auth.AuthRepository
+import com.talkeys.shared.network.ApiResult
 import com.google.android.gms.auth.api.signin.GoogleSignIn
 import com.google.android.gms.common.api.ApiException
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import android.util.Log
+import org.koin.compose.koinInject
 
 @Composable
 fun LoginScreen(navController: NavController) {
     val context = LocalContext.current
     val coroutineScope = rememberCoroutineScope()
     val tokenManager = remember { TokenManager(context) }
+    val authRepository: AuthRepository = koinInject()
     val urbanistFont = FontFamily(Font(R.font.urbanist_regular))
 
     var isCheckingToken by remember { mutableStateOf(true) }
@@ -110,24 +113,21 @@ fun LoginScreen(navController: NavController) {
                         Log.e("LoginScreen", "Google account is null")
                     }
 
-                    // Verify token with backend
+                    // Verify token with backend through the shared KMP auth repository.
                     Log.d("LoginScreen", "Verifying token with backend")
-                    val response = RetrofitClient.instance.verifyToken("Bearer $token")
-                    if (response.isSuccessful) {
-                        val body = response.body()
-                        Log.d("LoginScreen", "Backend verification ok")
-                        body?.accessToken?.let {
-                            tokenManager.saveToken(it)
-                            Log.d("LoginScreen", "JWT token saved")
+                    when (val authResult = authRepository.verifyGoogleToken(token)) {
+                        is ApiResult.Success -> {
+                            Log.d("LoginScreen", "Backend verification ok")
+                            Toast.makeText(context, "Welcome ${authResult.data.name}", Toast.LENGTH_SHORT).show()
+                            navController.navigate("home") {
+                                popUpTo("login") { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
-                        Toast.makeText(context, "Welcome ${body?.name}", Toast.LENGTH_SHORT).show()
-                        navController.navigate("home") {
-                            popUpTo("login") { inclusive = true }
-                            launchSingleTop = true
+                        is ApiResult.Failure -> {
+                            Log.e("LoginScreen", "Backend verification failed: ${authResult.error}")
+                            Toast.makeText(context, "Login failed", Toast.LENGTH_SHORT).show()
                         }
-                    } else {
-                        Log.e("LoginScreen", "Backend verification failed: ${response.code()}")
-                        Toast.makeText(context, "Login failed: ${response.code()}", Toast.LENGTH_SHORT).show()
                     }
                 } catch (e: Exception) {
                     Log.e("LoginScreen", "Exception during login: ${e.message}", e)

@@ -116,6 +116,7 @@ kotlin {
                 // Authentication
                 implementation(libs.google.play.services.auth)
                 implementation(libs.androidx.datastore.preferences)
+                implementation(libs.androidx.security.crypto)
             }
         }
 

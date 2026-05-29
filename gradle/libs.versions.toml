@@ -86,6 +86,16 @@ androidx-lifecycle-viewmodel = { module = "androidx.lifecycle:lifecycle-viewmode
 # DataStore
 androidx-datastore-preferences = { group = "androidx.datastore", name = "datastore-preferences", version = "1.0.0" }
 
+# Security — EncryptedSharedPreferences
+# Using 1.1.0-alpha06: the existing app-module SecureStorage already uses this
+# version with the same "secure_prefs" file. Upgrading to 1.1.0 (stable) would
+# require verifying EncryptedSharedPreferences file-format compatibility and
+# migration testing. The stable 1.1.0 release also deprecates the API in favor
+# of direct Android Keystore usage, but the existing token data is already
+# written with EncryptedSharedPreferences — switching storage format is a
+# future migration concern, not a Phase 5 scope item.
+androidx-security-crypto = { group = "androidx.security", name = "security-crypto", version = "1.1.0-alpha06" }
+
 # Google Play Services
 google-play-services-auth = { group = "com.google.android.gms", name = "play-services-auth", version = "20.7.0" }
 
