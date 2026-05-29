@@ -19,7 +19,7 @@ import kotlinx.coroutines.flow.asStateFlow
  *
  * Responsible for:
  * 1. Verifying a Google ID token with the backend via `POST /verify`
- *    (Citation: app/.../AuthService.kt:17-20, CURRENT_CLIENT_API_AUDIT.md §1)
+ *    (Citation: CURRENT_CLIENT_API_AUDIT.md §1)
  * 2. Saving the returned JWT access token into [TokenStorage]
  * 3. Clearing tokens on sign-out (local only — no backend logout endpoint exists)
  *
@@ -41,10 +41,10 @@ class AuthRepository(
      * Send the Google ID token to `POST <baseUrl>/verify` and, on success,
      * persist the returned JWT.
      *
-     * Request shape — exactly matches the live Android Retrofit call:
+     * Request shape — exactly matches the documented live Android auth call:
      *   Header `Authorization: Bearer <google_id_token>`
      *   No body.
-     * Citation: app/.../AuthService.kt:17-20
+     * Citation: CURRENT_CLIENT_API_AUDIT.md §1
      *
      * Response shape — `{ accessToken, name }`:
      * Citation: app/.../DataClasses.kt:3-4
@@ -58,7 +58,7 @@ class AuthRepository(
                 headers {
                     append(HttpHeaders.Authorization, "Bearer $googleIdToken")
                 }
-                // No body — matches Retrofit `POST("verify")` with no @Body
+                // No body — the backend reads the Google ID token from Authorization.
             }
 
             if (response.status.isSuccess()) {
