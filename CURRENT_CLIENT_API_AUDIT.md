@@ -3,11 +3,11 @@
 Snapshot of every network call observed in source on branch `kmp/ios-migration`. Endpoints are quoted exactly as they appear in code. **No backend contract has been inferred; only what is wired today.** Citations are `path:line`.
 
 Base hosts observed:
-- `https://api.talkeys.xyz/` — Android Retrofit clients (auth + events + dashboard)
+- `https://api.xyz` — Android Retrofit clients (auth + events + dashboard)
 - `ProductionConfig.getApiBaseUrl()` — shared Ktor `ApiClient` (used by payments)
   - [shared/src/commonMain/kotlin/com/talkeys/shared/network/ApiClient.kt:31](shared/src/commonMain/kotlin/com/talkeys/shared/network/ApiClient.kt:31)
 
-> The two base URL sources are not unified. The Android auth/events/dashboard clients hard-code `https://api.talkeys.xyz/` ([app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:25](app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:25), [app/src/main/java/com/example/talkeys_new/api/RetrofitClient.kt:8](app/src/main/java/com/example/talkeys_new/api/RetrofitClient.kt:8), [app/src/main/java/com/example/talkeys_new/screens/events/RetrofitClient.kt:19](app/src/main/java/com/example/talkeys_new/screens/events/RetrofitClient.kt:19)); only `PaymentApiService` reads from `ProductionConfig`. Reconcile this during feature/network migration; Phase 1 is toolchain-only.
+> The two base URL sources are not unified. The Android auth/events/dashboard clients hard-code `https://api.xyz/` ([app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:25](app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:25), [app/src/main/java/com/example/talkeys_new/api/RetrofitClient.kt:8](app/src/main/java/com/example/talkeys_new/api/RetrofitClient.kt:8), [app/src/main/java/com/example/talkeys_new/screens/events/RetrofitClient.kt:19](app/src/main/java/com/example/talkeys_new/screens/events/RetrofitClient.kt:19)); only `PaymentApiService` reads from `ProductionConfig`. Reconcile this during feature/network migration; Phase 1 is toolchain-only.
 
 ---
 
@@ -15,7 +15,7 @@ Base hosts observed:
 
 ### `POST verify`
 - File: [app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:17-20](app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:17)
-- Full path: `https://api.talkeys.xyz/verify`
+- Full path: `https://api..xyz/verify`
 - Method: `POST`
 - Headers: `Authorization: Bearer <google_id_token>` (passed as `@Header("Authorization")`)
 - Body: none
@@ -35,13 +35,13 @@ Phase 4 migration note: event list and event detail reads are now implemented in
 
 ### `GET getEvents`
 - File: [app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt:12-13](app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt:12)
-- Full path: `https://api.talkeys.xyz/getEvents`
+- Full path: `https://api..xyz/getEvents`
 - Response: `Response<EventListResponse>` → `.data.events: List<EventResponse>`
 - Current shared consumer: `com.talkeys.shared.data.events.EventsApi`, `EventsRepository`, `EventsListViewModel`; rendered by Android `ExploreEventsScreen` / `HomeScreen` and iOS `EventsListView`.
 
 ### `GET getEventById/{id}`
 - File: [app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt:15-18](app/src/main/java/com/example/talkeys_new/screens/events/EventApiService.kt:15)
-- Full path: `https://api.talkeys.xyz/getEventById/{id}`
+- Full path: `https://api.xyz/getEventById/{id}`
 - Path params: `id: String`
 - Response: `Response<EventDetailResponse>`
 - Current shared consumer: `com.talkeys.shared.data.events.EventsApi`, `EventsRepository`, `EventDetailViewModel`; rendered by Android `EventDetailScreen` and iOS `EventDetailView`.
@@ -60,7 +60,7 @@ Auth: `Authorization: Bearer <jwt>` passed per-call by repository.
 
 ### `GET dashboard/profile`
 - File: [DashboardApiService.kt:24-27](app/src/main/java/com/example/talkeys_new/api/DashboardApiService.kt:24)
-- Full path: `https://api.talkeys.xyz/dashboard/profile`
+- Full path: `https://api.xyz/dashboard/profile`
 - Headers: `Authorization`
 - Response: `Response<UserProfileResponse>` — fields: `_id, name, email, displayName?, about?, pronouns?, avatarUrl?, likedEvents`.
 
@@ -125,7 +125,7 @@ No backend API documentation exists outside the codebase itself.
 
 ### 1. Google Verify Endpoint (CONFIRMED — active in Android)
 
-- **Endpoint:** `POST https://api.talkeys.xyz/verify`
+- **Endpoint:** `POST https://api.xyz/verify`
 - **Source:** [AuthService.kt:17-20](app/src/main/java/com/example/talkeys_new/screens/authentication/AuthService.kt:17)
 - **Request:**
   - Method: `POST`
