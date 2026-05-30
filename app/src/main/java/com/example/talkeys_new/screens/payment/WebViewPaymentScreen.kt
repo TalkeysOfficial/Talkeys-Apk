@@ -1,33 +1,66 @@
 package com.example.talkeys_new.screens.payment
 
-import android.annotation.SuppressLint
-import android.graphics.Bitmap
-import android.content.Intent
-import android.net.http.SslError
-import android.webkit.*
-import androidx.compose.foundation.layout.*
+import android.net.Uri
+import android.util.Log
+import androidx.browser.customtabs.CustomTabColorSchemeParams
+import androidx.browser.customtabs.CustomTabsIntent
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLifecycleOwner
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.viewinterop.AndroidView
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.navigation.NavController
-import android.util.Log
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
+import com.example.talkeys_new.R
 
 /**
- * WebView Payment Screen
- * Opens PhonePe payment in a WebView using the same flow as the website
+ * Payment handoff screen.
+ *
+ * Despite the legacy file name, this screen now launches the hosted PhonePe
+ * checkout in a Chrome Custom Tab instead of an embedded WebView. When the
+ * user returns to the app, we continue to the existing payment-verification
+ * screen and let shared KMP logic confirm the final status.
  */
 @OptIn(ExperimentalMaterial3Api::class)
-@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun WebViewPaymentScreen(
     paymentUrl: String,
@@ -36,46 +69,75 @@ fun WebViewPaymentScreen(
     navController: NavController
 ) {
     val context = LocalContext.current
-    val scope = rememberCoroutineScope()
-    
-    var isLoading by remember { mutableStateOf(true) }
-    var loadProgress by remember { mutableStateOf(0) }
-    var currentUrl by remember { mutableStateOf("") }
-    var showError by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf("") }
-    var isVerifyingPayment by remember { mutableStateOf(false) }
-    
-    // Auto-verify payment after timeout
-    LaunchedEffect(merchantOrderId) {
-        delay(60000) // Wait 60 seconds
-        if (!isVerifyingPayment) {
-            Log.d("WebViewPayment", "Auto-verifying payment after timeout")
-            isVerifyingPayment = true
-            // Navigate to verification screen
-            navController.navigate("payment_verification/$merchantOrderId/$passId")
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var browserOpened by remember(paymentUrl) { mutableStateOf(false) }
+    var appBackgrounded by remember { mutableStateOf(false) }
+    var verificationLaunched by remember { mutableStateOf(false) }
+
+    fun openPaymentBrowser() {
+        val customTabsIntent = CustomTabsIntent.Builder()
+            .setShowTitle(true)
+            .setUrlBarHidingEnabled(false)
+            .setDefaultColorSchemeParams(
+                CustomTabColorSchemeParams.Builder()
+                    .setToolbarColor(android.graphics.Color.parseColor("#8A44CB"))
+                    .build()
+            )
+            .build()
+
+        browserOpened = true
+        verificationLaunched = false
+        Log.d("PhonePeCheckout", "Opening Chrome Custom Tab for payment")
+        customTabsIntent.launchUrl(context, Uri.parse(paymentUrl))
+    }
+
+    fun navigateToVerification() {
+        if (verificationLaunched) return
+        verificationLaunched = true
+        navController.navigate("payment_verification/$merchantOrderId/$passId") {
+            popUpTo("webview_payment/$paymentUrl/$merchantOrderId/$passId") {
+                inclusive = true
+            }
         }
     }
-    
+
+    LaunchedEffect(paymentUrl) {
+        openPaymentBrowser()
+    }
+
+    DisposableEffect(lifecycleOwner, browserOpened, appBackgrounded, verificationLaunched) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    if (browserOpened && !verificationLaunched) {
+                        appBackgrounded = true
+                    }
+                }
+
+                Lifecycle.Event.ON_RESUME -> {
+                    if (browserOpened && appBackgrounded && !verificationLaunched) {
+                        Log.d("PhonePeCheckout", "Returned from browser, starting verification")
+                        navigateToVerification()
+                    }
+                }
+
+                else -> Unit
+            }
+        }
+
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { 
-                    Column {
-                        Text("Complete Payment")
-                        if (isLoading) {
-                            Text(
-                                "Loading... $loadProgress%",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = Color.White.copy(alpha = 0.8f)
-                            )
-                        }
-                    }
-                },
+                title = { Text("Complete Payment") },
                 navigationIcon = {
-                    IconButton(onClick = {
-                        // Show confirmation dialog before closing
-                        navController.popBackStack()
-                    }) {
+                    IconButton(onClick = { navController.popBackStack() }) {
                         Icon(Icons.Default.Close, contentDescription = "Close")
                     }
                 },
@@ -92,285 +154,67 @@ fun WebViewPaymentScreen(
                 .fillMaxSize()
                 .padding(paddingValues)
         ) {
-            // WebView
-            AndroidView(
-                factory = { context ->
-                    WebView(context).apply webView@{
-                        CookieManager.getInstance().apply {
-                            setAcceptCookie(true)
-                            setAcceptThirdPartyCookies(this@webView, true)
-                        }
-
-                        settings.apply {
-                            javaScriptEnabled = true
-                            domStorageEnabled = true
-                            databaseEnabled = true
-                            setSupportZoom(true)
-                            builtInZoomControls = false
-                            loadWithOverviewMode = true
-                            useWideViewPort = true
-                            javaScriptCanOpenWindowsAutomatically = true
-                            setSupportMultipleWindows(true)
-                            mediaPlaybackRequiresUserGesture = false
-                            loadsImagesAutomatically = true
-                            cacheMode = WebSettings.LOAD_DEFAULT
-                            allowContentAccess = true
-                            userAgentString = userAgentString
-                                ?.replace("; wv", "")
-                                ?.replace("Version/4.0 ", "")
-                                ?: userAgentString
-                            
-                            // Allow mixed content for payment gateways
-                            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-                        }
-                        
-                        webViewClient = object : WebViewClient() {
-                            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                                super.onPageStarted(view, url, favicon)
-                                currentUrl = url ?: ""
-                                isLoading = true
-                                Log.d("WebViewPayment", "Payment page started loading")
-                            }
-                            
-                            override fun onPageFinished(view: WebView?, url: String?) {
-                                super.onPageFinished(view, url)
-                                isLoading = false
-                                currentUrl = url ?: ""
-                                Log.d("WebViewPayment", "Payment page finished loading for host=${runCatching { android.net.Uri.parse(url).host }.getOrNull() ?: "unknown"}")
-                                
-                                // Check for session expired error
-                                view?.evaluateJavascript(
-                                    "(function() { return document.body.innerText; })();"
-                                ) { html ->
-                                    val bodyText = html?.replace("\\u003C", "<")?.replace("\\u003E", ">") ?: ""
-                                    if (bodyText.contains("session expired", ignoreCase = true) ||
-                                        bodyText.contains("Session expired", ignoreCase = false)) {
-                                        Log.w("WebViewPayment", "Session expired detected in page content")
-                                        showError = true
-                                        errorMessage = "Payment session expired. The payment link is only valid for a short time. Please go back and try again."
-                                    }
-                                }
-                                
-                                // Check if we're on a callback URL
-                                url?.let { checkCallbackUrl(it, navController, merchantOrderId, passId) }
-                            }
-                            
-                            override fun shouldOverrideUrlLoading(
-                                view: WebView?,
-                                request: WebResourceRequest?
-                            ): Boolean {
-                                val url = request?.url?.toString() ?: return false
-                                Log.d("WebViewPayment", "Payment navigation received")
-                                
-                                // Check for callback URLs first
-                                if (checkCallbackUrl(url, navController, merchantOrderId, passId)) {
-                                    Log.d("WebViewPayment", "✅ Callback URL detected, navigating...")
-                                    return true
-                                }
-                                
-                                // Check for merchant redirect (when session expires)
-                                if (url.contains("api.talkeys.xyz") || url.contains("talkeys")) {
-                                    Log.d("WebViewPayment", "Merchant redirect detected")
-                                    // This is likely a redirect back to merchant after session expiry
-                                    // Navigate to verification screen to check payment status
-                                    navController.navigate("payment_verification/$merchantOrderId/$passId")
-                                    return true
-                                }
-                                
-                                // Allow PhonePe and payment URLs
-                                return when {
-                                    url.contains("phonepe.com") -> false
-                                    url.contains("mercury") -> false
-                                    url.startsWith("upi://") -> {
-                                        // Handle UPI intent
-                                        try {
-                                            val intent = android.content.Intent(
-                                                android.content.Intent.ACTION_VIEW,
-                                                android.net.Uri.parse(url)
-                                            )
-                                            context.startActivity(intent)
-                                            true
-                                        } catch (e: Exception) {
-                                            Log.e("WebViewPayment", "Failed to open UPI: ${e.message}")
-                                            false
-                                        }
-                                    }
-                                    else -> false
-                                }
-                            }
-                            
-                            override fun onReceivedError(
-                                view: WebView?,
-                                request: WebResourceRequest?,
-                                error: WebResourceError?
-                            ) {
-                                super.onReceivedError(view, request, error)
-                                if (request?.isForMainFrame == true) {
-                                    showError = true
-                                    errorMessage = error?.description?.toString() ?: "Failed to load payment page"
-                                    Log.e("WebViewPayment", "Error loading page: $errorMessage")
-                                }
-                            }
-                            
-                            override fun onReceivedSslError(
-                                view: WebView?,
-                                handler: SslErrorHandler?,
-                                error: SslError?
-                            ) {
-                                // For production, you should NOT proceed on SSL errors
-                                // This is only for testing with self-signed certificates
-                                Log.w("WebViewPayment", "SSL Error: ${error?.toString()}")
-                                handler?.cancel() // Reject SSL errors in production
-                            }
-                        }
-                        
-                        webChromeClient = object : WebChromeClient() {
-                            override fun onProgressChanged(view: WebView?, newProgress: Int) {
-                                super.onProgressChanged(view, newProgress)
-                                loadProgress = newProgress
-                                if (newProgress == 100) {
-                                    isLoading = false
-                                }
-                            }
-
-                            override fun onCreateWindow(
-                                view: WebView?,
-                                isDialog: Boolean,
-                                isUserGesture: Boolean,
-                                resultMsg: android.os.Message?
-                            ): Boolean {
-                                val popupUrl = view?.hitTestResult?.extra
-                                if (!popupUrl.isNullOrBlank()) {
-                                    runCatching {
-                                        context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(popupUrl)))
-                                    }.onFailure { error ->
-                                        Log.e("WebViewPayment", "Failed to open popup URL: ${error.message}")
-                                    }
-                                    return false
-                                }
-                                return super.onCreateWindow(view, isDialog, isUserGesture, resultMsg)
-                            }
-                            
-                            override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean = true
-                        }
-                        
-                        // Load the payment URL
-                        Log.d("WebViewPayment", "Loading payment page")
-                        loadUrl(paymentUrl)
-                    }
-                },
+            Image(
+                painter = painterResource(id = R.drawable.background),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
                 modifier = Modifier.fillMaxSize()
             )
-            
-            // Loading indicator
-            if (isLoading && loadProgress < 100) {
-                LinearProgressIndicator(
-                    progress = loadProgress / 100f,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter),
-                    color = Color(0xFF8A44CB)
-                )
-            }
-            
-            // Error message
-            if (showError) {
+
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .align(Alignment.BottomCenter),
-                    colors = CardDefaults.cardColors(
-                        containerColor = Color.Red.copy(alpha = 0.9f)
-                    )
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = CardDefaults.cardColors(containerColor = Color(0xFF171717)),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(
-                        modifier = Modifier.padding(16.dp),
+                        modifier = Modifier.padding(24.dp),
                         horizontalAlignment = Alignment.CenterHorizontally
                     ) {
                         Text(
-                            text = "Error Loading Payment",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = Color.White
+                            text = "Secure Browser Checkout",
+                            style = MaterialTheme.typography.titleLarge,
+                            color = Color.White,
+                            fontWeight = FontWeight.Bold
                         )
-                        Spacer(modifier = Modifier.height(8.dp))
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = errorMessage,
+                            text = "We opened PhonePe in a secure browser tab for better compatibility. Complete the payment there, then return to the app.",
                             style = MaterialTheme.typography.bodyMedium,
-                            color = Color.White
+                            color = Color.White.copy(alpha = 0.85f),
+                            textAlign = TextAlign.Center
                         )
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        Spacer(modifier = Modifier.height(20.dp))
+                        Text(
+                            text = "If the browser did not open or you closed it, you can reopen checkout or verify the payment manually.",
+                            fontSize = 13.sp,
+                            color = Color.White.copy(alpha = 0.7f),
+                            textAlign = TextAlign.Center
+                        )
+                        Spacer(modifier = Modifier.height(24.dp))
+                        Button(
+                            onClick = { openPaymentBrowser() },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF8A44CB))
                         ) {
-                            Button(
-                                onClick = { showError = false },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color.White
-                                )
-                            ) {
-                                Text("Dismiss", color = Color.Red)
-                            }
-                            Button(
-                                onClick = {
-                                    // Navigate to verification
-                                    navController.navigate("payment_verification/$merchantOrderId/$passId")
-                                },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = Color(0xFF8A44CB)
-                                )
-                            ) {
-                                Text("Verify Payment", color = Color.White)
-                            }
+                            Text("Open Payment Page Again", color = Color.White)
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        OutlinedButton(
+                            onClick = { navigateToVerification() },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text("I Completed Payment", color = Color.White)
                         }
                     }
                 }
             }
         }
-    }
-}
-
-/**
- * Check if URL is a callback URL and handle navigation
- */
-private fun checkCallbackUrl(
-    url: String,
-    navController: NavController,
-    merchantOrderId: String,
-    passId: String
-): Boolean {
-    Log.d("WebViewPayment", "Checking payment callback")
-    
-    return when {
-        // Success callback
-        url.contains("/ticket/success") || url.contains("payment/success") -> {
-            Log.d("WebViewPayment", "Success callback detected")
-            navController.navigate("payment_verification/$merchantOrderId/$passId")
-            true
-        }
-        
-        // Failure callback
-        url.contains("/ticket/failure") || url.contains("payment/failure") -> {
-            Log.d("WebViewPayment", "Failure callback detected")
-            navController.navigate("payment_verification/$merchantOrderId/$passId")
-            true
-        }
-        
-        // Pending callback
-        url.contains("/ticket/pending") || url.contains("payment/pending") -> {
-            Log.d("WebViewPayment", "Pending callback detected")
-            navController.navigate("payment_verification/$merchantOrderId/$passId")
-            true
-        }
-        
-        // Error callback
-        url.contains("/ticket/error") || url.contains("payment/error") -> {
-            Log.d("WebViewPayment", "Error callback detected")
-            Log.e("WebViewPayment", "Payment error callback detected")
-            navController.popBackStack()
-            true
-        }
-        
-        else -> false
     }
 }

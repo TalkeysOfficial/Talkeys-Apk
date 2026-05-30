@@ -38,7 +38,7 @@ fun AppNavigation(modifier: Modifier) {
     val navController = rememberNavController()
     val eventCreationViewModel = sharedEventCreationViewModel()
 
-    NavHost(navController = navController, startDestination = "home") {
+    NavHost(navController = navController, startDestination = "landingpage") {
         //composable("splash") { SplashScreen(navController) }
         composable("landingpage") { LandingPage(navController) }
         composable("signup") { SignUpScreen(navController) }
