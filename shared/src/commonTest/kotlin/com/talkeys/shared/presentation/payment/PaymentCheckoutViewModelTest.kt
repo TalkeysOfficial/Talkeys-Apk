@@ -34,9 +34,12 @@ class PaymentCheckoutViewModelTest {
 
     @Test
     fun startCheckout_requiresAuthToken() = runTest {
-        val viewModel = PaymentCheckoutViewModel(fakeRepository(Result.success(orderData())))
+        val viewModel = PaymentCheckoutViewModel(
+            fakeRepository(Result.failure(Exception("Please login to continue")))
+        )
 
         viewModel.startCheckout("event-1", "General", emptyList(), authToken = null)
+        advanceUntilIdle()
 
         assertFalse(viewModel.checkoutState.value.isLoading)
         assertEquals("Please login to continue", viewModel.checkoutState.value.errorMessage)
@@ -56,6 +59,36 @@ class PaymentCheckoutViewModelTest {
         assertEquals("merchant-1", checkout.merchantOrderId)
         assertEquals("pass-1", checkout.passId)
         assertEquals("https://mercury-t2.phonepe.com/transact/pg?token=token%2Babc", checkout.paymentUrl)
+    }
+
+    @Test
+    fun startCheckout_usesFullPaymentUrlWhenBackendReturnsIt() = runTest {
+        val paymentUrl = "https://mercury.phonepe.com/transact/pg?token=abc123"
+        val viewModel = PaymentCheckoutViewModel(
+            repository = fakeRepository(Result.success(orderData(token = null, paymentUrl = paymentUrl))),
+            isPhonePeProduction = true
+        )
+
+        viewModel.startCheckout("event-1", "General", emptyList(), authToken = "jwt")
+        advanceUntilIdle()
+
+        val checkout = assertNotNull(viewModel.checkoutState.value.checkoutData)
+        assertEquals(paymentUrl, checkout.paymentUrl)
+    }
+
+    @Test
+    fun startCheckout_failsWhenBackendOmitsCheckoutDetails() = runTest {
+        val viewModel = PaymentCheckoutViewModel(
+            repository = fakeRepository(Result.success(orderData(token = null, paymentUrl = null)))
+        )
+
+        viewModel.startCheckout("event-1", "General", emptyList(), authToken = "jwt")
+        advanceUntilIdle()
+
+        assertEquals(
+            "Payment response did not include checkout details. Please try again.",
+            viewModel.checkoutState.value.errorMessage
+        )
     }
 
     @Test
@@ -80,11 +113,12 @@ class PaymentCheckoutViewModelTest {
         val viewModel = PaymentCheckoutViewModel(
             repository = fakeRepository(
                 bookTicketResult = Result.success(orderData()),
-                statusResult = Result.success(PaymentStatusData("pass-1", "uuid-1", "COMPLETED"))
+                statusResult = Result.failure(Exception("Please login to verify payment"))
             )
         )
 
         viewModel.verifyPaymentStatus("merchant-1", authToken = null)
+        advanceUntilIdle()
 
         assertFalse(viewModel.verificationState.value.isLoading)
         assertEquals("Please login to verify payment", viewModel.verificationState.value.errorMessage)
@@ -98,6 +132,7 @@ class PaymentCheckoutViewModelTest {
             eventId: String,
             passType: String,
             friends: List<com.talkeys.shared.data.payment.Friend>,
+            teamCode: String?,
             authToken: String?
         ): Result<PaymentOrderData> = bookTicketResult
 
@@ -107,7 +142,10 @@ class PaymentCheckoutViewModelTest {
         ): Result<PaymentStatusData> = statusResult
     }
 
-    private fun orderData(token: String = "token") = PaymentOrderData(
+    private fun orderData(
+        token: String? = "token",
+        paymentUrl: String? = null
+    ) = PaymentOrderData(
         passId = "pass-1",
         merchantOrderId = "merchant-1",
         orderId = "order-1",
@@ -115,6 +153,7 @@ class PaymentCheckoutViewModelTest {
         amountInPaisa = 10000,
         totalTickets = 1,
         token = token,
+        paymentUrl = paymentUrl,
         event = EventInfo(id = "event-1"),
         qrStrings = emptyList(),
         friends = emptyList()

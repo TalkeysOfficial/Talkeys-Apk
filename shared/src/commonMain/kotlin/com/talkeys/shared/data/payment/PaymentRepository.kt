@@ -2,9 +2,13 @@ package com.talkeys.shared.data.payment
 
 import com.talkeys.shared.network.PaymentApiService
 import com.talkeys.shared.config.ProductionConfig
+import com.talkeys.shared.auth.TokenStorage
 import co.touchlab.kermit.Logger
 
-open class PaymentRepository(private val paymentApiService: PaymentApiService) {
+open class PaymentRepository(
+    private val paymentApiService: PaymentApiService,
+    private val tokenStorage: TokenStorage? = null
+) {
     
     private val logger = Logger.withTag("PaymentRepository")
     
@@ -22,6 +26,7 @@ open class PaymentRepository(private val paymentApiService: PaymentApiService) {
         eventId: String,
         passType: String,
         friends: List<Friend>,
+        teamCode: String? = null,
         authToken: String? = null
     ): Result<PaymentOrderData> {
         // Production validation
@@ -29,16 +34,20 @@ open class PaymentRepository(private val paymentApiService: PaymentApiService) {
             return Result.failure(Exception("Maximum ${ProductionConfig.MAX_FRIENDS_PER_BOOKING} friends allowed per booking"))
         }
         
+        val resolvedAuthToken = resolveAuthToken(authToken)
+            ?: return Result.failure(Exception("Please login to continue"))
+
         logger.i { "Production: Booking ticket for event: $eventId, passType: $passType, friends: ${friends.size}" }
         
         val request = BookTicketRequest(
             eventId = eventId,
             passType = passType,
-            friends = friends
+            friends = friends,
+            teamCode = teamCode?.trim()?.takeIf { it.isNotEmpty() }
         )
         
         return try {
-            val result = paymentApiService.bookTicketApp(request, authToken)
+            val result = paymentApiService.bookTicketApp(request, resolvedAuthToken)
             
             result.fold(
                 onSuccess = { response ->
@@ -66,10 +75,13 @@ open class PaymentRepository(private val paymentApiService: PaymentApiService) {
      * Verify payment status after PhonePe payment completion
      */
     open suspend fun verifyPaymentStatus(merchantOrderId: String, authToken: String? = null): Result<PaymentStatusData> {
+        val resolvedAuthToken = resolveAuthToken(authToken)
+            ?: return Result.failure(Exception("Please login to verify payment"))
+
         logger.d { "Verifying payment status" }
         
         return try {
-            val result = paymentApiService.checkPaymentStatus(merchantOrderId, authToken)
+            val result = paymentApiService.checkPaymentStatus(merchantOrderId, resolvedAuthToken)
             
             result.fold(
                 onSuccess = { response ->
@@ -119,5 +131,10 @@ open class PaymentRepository(private val paymentApiService: PaymentApiService) {
             logger.e(e) { "Unexpected error during payment verification" }
             Result.failure(e)
         }
+    }
+
+    private suspend fun resolveAuthToken(authToken: String?): String? {
+        return authToken?.trim()?.takeIf { it.isNotBlank() }
+            ?: tokenStorage?.getToken()?.trim()?.takeIf { it.isNotBlank() }
     }
 }

@@ -14,7 +14,7 @@ import org.koin.dsl.module
 val sharedModule = module {
     single { ApiClient() }
     single { PaymentApiService(get()) }
-    single { PaymentRepository(get()) }
+    single { PaymentRepository(get(), get()) }
 
     // Phase 4 — Events vertical slice (read-only)
     single { EventsApi(get<ApiClient>()) }

@@ -25,21 +25,31 @@ class PaymentCheckoutViewModel(
         eventId: String,
         passType: String,
         friends: List<Friend>,
+        teamCode: String? = null,
         authToken: String?
     ) {
-        if (authToken.isNullOrBlank()) {
-            _checkoutState.value = PaymentCheckoutUiState(errorMessage = "Please login to continue")
-            return
-        }
-
         _checkoutState.value = PaymentCheckoutUiState(isLoading = true)
         viewModelScope.launch {
-            repository.bookTicket(eventId, passType, friends, authToken)
+            repository.bookTicket(
+                eventId = eventId,
+                passType = passType,
+                friends = friends,
+                teamCode = teamCode,
+                authToken = authToken
+            )
                 .onSuccess { paymentOrder ->
+                    val checkoutTokenOrUrl = paymentOrder.checkoutTokenOrUrl()
+                    if (checkoutTokenOrUrl.isNullOrBlank()) {
+                        _checkoutState.value = PaymentCheckoutUiState(
+                            errorMessage = "Payment response did not include checkout details. Please try again."
+                        )
+                        return@onSuccess
+                    }
+
                     _checkoutState.value = PaymentCheckoutUiState(
                         checkoutData = PaymentCheckoutData(
                             paymentUrl = PhonePeCheckoutUrlBuilder.buildCheckoutUrl(
-                                tokenOrUrl = paymentOrder.token,
+                                tokenOrUrl = checkoutTokenOrUrl,
                                 isProduction = isPhonePeProduction
                             ),
                             merchantOrderId = paymentOrder.merchantOrderId,
@@ -56,11 +66,6 @@ class PaymentCheckoutViewModel(
     }
 
     fun verifyPaymentStatus(merchantOrderId: String, authToken: String?) {
-        if (authToken.isNullOrBlank()) {
-            _verificationState.value = PaymentVerificationUiState(errorMessage = "Please login to verify payment")
-            return
-        }
-
         _verificationState.value = PaymentVerificationUiState(isLoading = true)
         viewModelScope.launch {
             repository.verifyPaymentStatus(merchantOrderId, authToken)
