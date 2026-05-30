@@ -74,13 +74,20 @@ fun ProfileScreen(navController: NavController) {
     val userProfile = remember(sharedProfileState, localGoogleProfile) {
         val content = sharedProfileState as? ProfileUiState.Content
         content?.profile?.let { profile ->
+            val resolvedDisplayName = firstNonBlank(
+                profile.displayName,
+                profile.name,
+                localGoogleProfile.givenName,
+                localGoogleProfile.name
+            )
+            val resolvedEmail = firstNonBlank(profile.email, localGoogleProfile.email)
             UserProfile(
-                id = profile.id,
-                name = profile.displayName ?: profile.name,
-                email = profile.email,
-                profileImageUrl = profile.avatarUrl,
-                givenName = profile.displayName ?: profile.name,
-                familyName = ""
+                id = firstNonBlank(profile.id, localGoogleProfile.id),
+                name = resolvedDisplayName,
+                email = resolvedEmail,
+                profileImageUrl = profile.avatarUrl ?: localGoogleProfile.profileImageUrl,
+                givenName = resolvedDisplayName,
+                familyName = localGoogleProfile.familyName
             )
         } ?: localGoogleProfile
     }
@@ -949,6 +956,10 @@ private fun getUserDisplayName(userProfile: UserProfile): String {
         userProfile.name.isNotEmpty() -> userProfile.name
         else -> "User"
     }
+}
+
+private fun firstNonBlank(vararg values: String?): String {
+    return values.firstOrNull { !it.isNullOrBlank() }?.trim().orEmpty()
 }
 
 private fun getUserEmail(userProfile: UserProfile): String {

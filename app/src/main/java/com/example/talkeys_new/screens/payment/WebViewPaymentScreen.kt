@@ -2,6 +2,7 @@ package com.example.talkeys_new.screens.payment
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.content.Intent
 import android.net.http.SslError
 import android.webkit.*
 import androidx.compose.foundation.layout.*
@@ -94,7 +95,12 @@ fun WebViewPaymentScreen(
             // WebView
             AndroidView(
                 factory = { context ->
-                    WebView(context).apply {
+                    WebView(context).apply webView@{
+                        CookieManager.getInstance().apply {
+                            setAcceptCookie(true)
+                            setAcceptThirdPartyCookies(this@webView, true)
+                        }
+
                         settings.apply {
                             javaScriptEnabled = true
                             domStorageEnabled = true
@@ -104,7 +110,15 @@ fun WebViewPaymentScreen(
                             loadWithOverviewMode = true
                             useWideViewPort = true
                             javaScriptCanOpenWindowsAutomatically = true
+                            setSupportMultipleWindows(true)
                             mediaPlaybackRequiresUserGesture = false
+                            loadsImagesAutomatically = true
+                            cacheMode = WebSettings.LOAD_DEFAULT
+                            allowContentAccess = true
+                            userAgentString = userAgentString
+                                ?.replace("; wv", "")
+                                ?.replace("Version/4.0 ", "")
+                                ?: userAgentString
                             
                             // Allow mixed content for payment gateways
                             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
@@ -122,7 +136,7 @@ fun WebViewPaymentScreen(
                                 super.onPageFinished(view, url)
                                 isLoading = false
                                 currentUrl = url ?: ""
-                                Log.d("WebViewPayment", "Payment page finished loading")
+                                Log.d("WebViewPayment", "Payment page finished loading for host=${runCatching { android.net.Uri.parse(url).host }.getOrNull() ?: "unknown"}")
                                 
                                 // Check for session expired error
                                 view?.evaluateJavascript(
@@ -217,6 +231,24 @@ fun WebViewPaymentScreen(
                                 if (newProgress == 100) {
                                     isLoading = false
                                 }
+                            }
+
+                            override fun onCreateWindow(
+                                view: WebView?,
+                                isDialog: Boolean,
+                                isUserGesture: Boolean,
+                                resultMsg: android.os.Message?
+                            ): Boolean {
+                                val popupUrl = view?.hitTestResult?.extra
+                                if (!popupUrl.isNullOrBlank()) {
+                                    runCatching {
+                                        context.startActivity(Intent(Intent.ACTION_VIEW, android.net.Uri.parse(popupUrl)))
+                                    }.onFailure { error ->
+                                        Log.e("WebViewPayment", "Failed to open popup URL: ${error.message}")
+                                    }
+                                    return false
+                                }
+                                return super.onCreateWindow(view, isDialog, isUserGesture, resultMsg)
                             }
                             
                             override fun onConsoleMessage(consoleMessage: ConsoleMessage?): Boolean = true

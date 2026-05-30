@@ -14,7 +14,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -22,7 +21,6 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavController
 import com.example.talkeys_new.R
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -32,7 +30,6 @@ fun EventPaymentScreen(
     eventPrice: String,
     navController: NavController
 ) {
-    val context = LocalContext.current
     val scrollState = rememberScrollState()
     
     // Convert price to double for calculations
@@ -234,9 +231,7 @@ private fun PhonePePaymentSection(
     navController: NavController,
     onPaymentInitiated: () -> Unit
 ) {
-    val context = LocalContext.current
     var isLoading by remember { mutableStateOf(false) }
-    val scope = rememberCoroutineScope()
     val paymentViewModel = sharedPaymentCheckoutViewModel()
     val checkoutState by paymentViewModel.checkoutState.collectAsState()
     val errorMessage = checkoutState.errorMessage
@@ -355,21 +350,13 @@ private fun PhonePePaymentSection(
                     val passType = determinePassType(amount)
                     val friends = getUserSelectedFriends()
                     
-                    scope.launch {
-                        val tokenManager = com.example.talkeys_new.screens.authentication.TokenManager(context)
-                        val tokenResult = tokenManager.getToken()
-                        val authToken = when (tokenResult) {
-                            is com.example.talkeys_new.utils.Result.Success -> tokenResult.data?.takeIf { it.isNotBlank() }
-                            else -> null
-                        }
-
-                        paymentViewModel.startCheckout(
-                            eventId = eventId,
-                            passType = passType,
-                            friends = friends,
-                            authToken = authToken
-                        )
-                    }
+                    paymentViewModel.startCheckout(
+                        eventId = eventId,
+                        passType = passType,
+                        friends = friends,
+                        teamCode = null,
+                        authToken = null
+                    )
                 },
                 modifier = Modifier
                     .fillMaxWidth()

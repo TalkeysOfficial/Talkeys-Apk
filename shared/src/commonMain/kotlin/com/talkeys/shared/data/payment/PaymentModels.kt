@@ -1,12 +1,16 @@
 package com.talkeys.shared.data.payment
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.ExperimentalSerializationApi
+import kotlinx.serialization.json.JsonNames
 
 @Serializable
 data class BookTicketRequest(
     val eventId: String,
     val passType: String,
-    val friends: List<Friend>
+    val friends: List<Friend>,
+    val teamCode: String? = null
 )
 
 @Serializable
@@ -23,18 +27,27 @@ data class BookTicketResponse(
 )
 
 @Serializable
+@OptIn(ExperimentalSerializationApi::class)
 data class PaymentOrderData(
     val passId: String,
     val merchantOrderId: String,
-    val orderId: String, // Backend sends "orderId" not "phonePeOrderId"
-    val amount: Int,
-    val amountInPaisa: Int,
-    val totalTickets: Int,
-    val token: String, // Backend sends "token" not "paymentUrl"
-    val event: EventInfo,
-    val qrStrings: List<QrString>,
-    val friends: List<Friend>
-)
+    @JsonNames("orderId", "phonePeOrderId")
+    val orderId: String? = null,
+    val amount: Int? = null,
+    val amountInPaisa: Int? = null,
+    val totalTickets: Int? = null,
+    @JsonNames("token", "paymentToken", "payment_token")
+    val token: String? = null,
+    @SerialName("paymentUrl")
+    @JsonNames("paymentUrl", "checkoutUrl", "redirectUrl", "url", "redirectURL")
+    val paymentUrl: String? = null,
+    val event: EventInfo? = null,
+    val qrStrings: List<QrString> = emptyList(),
+    val friends: List<Friend> = emptyList()
+) {
+    fun checkoutTokenOrUrl(): String? = paymentUrl?.takeIf { it.isNotBlank() }
+        ?: token?.takeIf { it.isNotBlank() }
+}
 
 @Serializable
 data class EventInfo(
